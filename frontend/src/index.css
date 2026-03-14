@@ -1,13 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap');
-
-:root {
-  --font-display: 'Syne', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-}
 
 * {
   box-sizing: border-box;
@@ -20,7 +15,7 @@ html {
 body {
   background-color: #0c0a09;
   color: #e7e5e4;
-  font-family: var(--font-display);
+  font-family: Syne, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
@@ -50,11 +45,11 @@ body {
 
 /* Font overrides */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-display);
+  font-family: Syne, sans-serif;
 }
 
 .font-mono, code, pre {
-  font-family: var(--font-mono);
+  font-family: 'JetBrains Mono', monospace;
 }
 
 /* Fade-in animation */
