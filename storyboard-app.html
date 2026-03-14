@@ -1,0 +1,2030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CineForge — AI Storyboard Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Space+Mono:wght@400;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:          #0a0a0f;
+    --surface:     #11111a;
+    --surface2:    #1a1a28;
+    --border:      rgba(255,255,255,0.07);
+    --border2:     rgba(255,255,255,0.14);
+    --gold:        #c9a84c;
+    --gold-light:  #e8c87a;
+    --amber:       #ff8c42;
+    --teal:        #2dd4bf;
+    --red:         #ef4444;
+    --text:        #e8e4dc;
+    --muted:       #7a7670;
+    --film:        #1e1a2e;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    overflow-x: hidden;
+  }
+
+  /* ─── NOISE OVERLAY ─── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 9999; opacity: 0.4;
+  }
+
+  /* ─── FILM GRAIN ANIMATION ─── */
+  @keyframes grain {
+    0%, 100% { transform: translate(0,0); }
+    10%  { transform: translate(-1%,-1%); }
+    20%  { transform: translate(1%,0); }
+    30%  { transform: translate(0,1%); }
+    40%  { transform: translate(-1%,0); }
+    50%  { transform: translate(1%,1%); }
+    60%  { transform: translate(0,-1%); }
+    70%  { transform: translate(-1%,1%); }
+    80%  { transform: translate(1%,-1%); }
+    90%  { transform: translate(0,0); }
+  }
+
+  body::after {
+    content: '';
+    position: fixed; inset: -50%;
+    width: 200%; height: 200%;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    animation: grain 0.5s steps(1) infinite;
+    pointer-events: none; z-index: 9998;
+  }
+
+  /* ─── APP SHELL ─── */
+  #app { min-height: 100vh; position: relative; }
+
+  /* ─── HEADER ─── */
+  .header {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    padding: 18px 48px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(to bottom, rgba(10,10,15,0.95), transparent);
+    backdrop-filter: blur(4px);
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 4px;
+    color: var(--gold);
+    text-shadow: 0 0 40px rgba(201,168,76,0.3);
+  }
+
+  .logo span { color: var(--text); opacity: 0.5; }
+
+  .step-nav {
+    display: flex; gap: 8px; align-items: center;
+  }
+
+  .step-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border2);
+    transition: all 0.4s ease;
+    cursor: default;
+  }
+
+  .step-dot.active { background: var(--gold); box-shadow: 0 0 12px var(--gold); }
+  .step-dot.done   { background: var(--teal); }
+
+  /* ─── SCREENS ─── */
+  .screen { display: none; min-height: 100vh; padding-top: 80px; }
+  .screen.active { display: block; animation: fadeUp 0.6s ease forwards; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ═══════════════════════════════════════
+     SCREEN 1 — IDEA INPUT
+  ═══════════════════════════════════════ */
+  .idea-screen {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 100vh;
+    padding: 80px 24px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .idea-screen::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 30%, rgba(201,168,76,0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 30% at 20% 80%, rgba(45,212,191,0.04) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  /* Film strip decoration */
+  .filmstrip-top, .filmstrip-bottom {
+    position: absolute; left: 0; right: 0;
+    height: 56px;
+    background: var(--film);
+    display: flex; align-items: center; gap: 0;
+    overflow: hidden;
+  }
+
+  .filmstrip-top { top: 80px; }
+  .filmstrip-bottom { bottom: 0; }
+
+  .film-hole {
+    flex-shrink: 0;
+    width: 32px; height: 36px;
+    border-radius: 4px;
+    background: var(--bg);
+    margin: 0 8px;
+  }
+
+  .idea-content {
+    position: relative; z-index: 1;
+    text-align: center;
+    max-width: 760px;
+    width: 100%;
+  }
+
+  .eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 6px;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    opacity: 0.8;
+  }
+
+  h1.hero {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(52px, 8vw, 96px);
+    line-height: 0.9;
+    letter-spacing: 3px;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+
+  h1.hero em {
+    color: var(--gold);
+    font-style: normal;
+  }
+
+  .subtitle {
+    font-size: 18px;
+    font-weight: 300;
+    color: var(--muted);
+    margin-bottom: 48px;
+    line-height: 1.6;
+    font-style: italic;
+  }
+
+  .textarea-wrap {
+    position: relative;
+    margin-bottom: 24px;
+  }
+
+  .idea-textarea {
+    width: 100%;
+    min-height: 140px;
+    padding: 24px 28px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 2px;
+    color: var(--text);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    font-weight: 300;
+    line-height: 1.7;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    letter-spacing: 0.3px;
+  }
+
+  .idea-textarea::placeholder { color: var(--muted); font-style: italic; }
+  .idea-textarea:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 1px var(--gold), 0 0 40px rgba(201,168,76,0.08);
+  }
+
+  .char-count {
+    position: absolute; bottom: 12px; right: 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 12px;
+    padding: 16px 40px;
+    background: var(--gold);
+    color: #0a0a0f;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border: none; border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .btn-primary:hover { background: var(--gold-light); transform: translateY(-1px); box-shadow: 0 8px 32px rgba(201,168,76,0.3); }
+  .btn-primary:hover::before { opacity: 1; }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .btn-secondary {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 14px 28px;
+    background: transparent;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border: 1px solid var(--border2);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .btn-secondary:hover { border-color: var(--gold); color: var(--gold); }
+
+  .btn-danger {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 14px 28px;
+    background: transparent;
+    color: var(--red);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .btn-danger:hover { background: rgba(239,68,68,0.1); border-color: var(--red); }
+
+  /* Loading spinner */
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: none;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading .spinner { display: block; }
+  .loading .btn-text { display: none; }
+
+  .loading-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(8px);
+    align-items: center; justify-content: center;
+    flex-direction: column; gap: 24px;
+  }
+
+  .loading-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .loading-reel {
+    width: 80px; height: 80px;
+    border: 3px solid var(--border2);
+    border-radius: 50%;
+    border-top-color: var(--gold);
+    animation: spin 1.2s linear infinite;
+  }
+
+  .loading-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 4px;
+    color: var(--gold);
+    text-transform: uppercase;
+    animation: pulse 2s ease infinite;
+  }
+
+  .loading-sub {
+    font-size: 15px;
+    color: var(--muted);
+    font-style: italic;
+    max-width: 300px;
+    text-align: center;
+  }
+
+  @keyframes pulse { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
+
+  /* ═══════════════════════════════════════
+     SCREEN 2 — STORY PLAN REVIEW
+  ═══════════════════════════════════════ */
+  .plan-screen { padding: 100px 48px 60px; max-width: 1100px; margin: 0 auto; }
+
+  .screen-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    letter-spacing: 3px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .screen-subtitle {
+    font-size: 16px;
+    color: var(--muted);
+    font-style: italic;
+    margin-bottom: 48px;
+  }
+
+  .plan-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 40px;
+  }
+
+  @media (max-width: 768px) { .plan-grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--gold), transparent);
+    opacity: 0.5;
+  }
+
+  .card-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    opacity: 0.8;
+  }
+
+  .story-snapshot {
+    font-size: 16px;
+    line-height: 1.8;
+    font-weight: 300;
+    color: var(--text);
+    font-style: italic;
+  }
+
+  .characters-list { display: flex; flex-direction: column; gap: 16px; }
+
+  .character-item {
+    display: flex; gap: 16px; align-items: flex-start;
+    animation: slideIn 0.4s ease forwards;
+    opacity: 0;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  .char-avatar {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    color: var(--gold);
+    flex-shrink: 0;
+  }
+
+  .char-name {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--gold-light);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .char-desc {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.5;
+    font-style: italic;
+  }
+
+  .scenes-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 40px; }
+
+  .scene-card-plan {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 20px 24px;
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    align-items: center;
+    gap: 24px;
+    animation: fadeUp 0.5s ease forwards;
+    opacity: 0;
+    cursor: default;
+    transition: border-color 0.3s;
+  }
+
+  .scene-card-plan:hover { border-color: var(--border2); }
+
+  .scene-number-badge {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    color: var(--gold);
+    opacity: 0.4;
+    line-height: 1;
+  }
+
+  .scene-info h3 {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--text);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .scene-info p { font-size: 14px; color: var(--muted); font-style: italic; }
+
+  .scene-tags {
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;
+  }
+
+  .tag {
+    padding: 4px 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .tag.char-tag { border-color: rgba(201,168,76,0.2); color: var(--gold); }
+
+  .plan-actions {
+    display: flex; gap: 16px; align-items: center;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ═══════════════════════════════════════
+     SCREEN 3 — SCENE WORKSHOP
+  ═══════════════════════════════════════ */
+  .workshop-screen { padding: 100px 0 60px; }
+
+  .workshop-header {
+    padding: 0 48px 32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0;
+  }
+
+  .progress-bar-wrap {
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .progress-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .progress-track {
+    flex: 1;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold), var(--amber));
+    border-radius: 2px;
+    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .workshop-layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    min-height: calc(100vh - 200px);
+  }
+
+  @media (max-width: 900px) { .workshop-layout { grid-template-columns: 1fr; } }
+
+  .scene-brief {
+    padding: 32px 32px;
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 80px;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+  }
+
+  .brief-section { margin-bottom: 28px; }
+  .brief-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .brief-value {
+    font-size: 16px;
+    color: var(--text);
+    line-height: 1.6;
+    font-style: italic;
+  }
+
+  .char-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+  .char-badge {
+    padding: 6px 12px;
+    background: rgba(201,168,76,0.08);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 2px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--gold);
+    text-transform: uppercase;
+  }
+
+  .generation-workspace {
+    padding: 32px 48px;
+    overflow-y: auto;
+  }
+
+  .workspace-section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 3px;
+    color: var(--text);
+    margin-bottom: 20px;
+    margin-top: 40px;
+    opacity: 0.7;
+  }
+
+  .workspace-section-title:first-child { margin-top: 0; }
+
+  /* Image Prompt Card */
+  .prompt-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    animation: fadeUp 0.4s ease forwards;
+    opacity: 0;
+  }
+
+  .prompt-card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface2);
+  }
+
+  .prompt-index {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .status-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 4px 10px;
+    border-radius: 2px;
+    text-transform: uppercase;
+  }
+
+  .status-pending  { background: rgba(122,118,112,0.1); color: var(--muted); border: 1px solid var(--border); }
+  .status-generating { background: rgba(255,140,66,0.1); color: var(--amber); border: 1px solid rgba(255,140,66,0.3); }
+  .status-done     { background: rgba(45,212,191,0.1); color: var(--teal); border: 1px solid rgba(45,212,191,0.3); }
+  .status-error    { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+
+  .prompt-text {
+    padding: 16px 20px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--text);
+    opacity: 0.8;
+    border-bottom: 1px solid var(--border);
+    white-space: pre-wrap;
+  }
+
+  .prompt-actions {
+    padding: 12px 20px;
+    display: flex; align-items: center; gap: 12px;
+  }
+
+  .btn-generate {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px;
+    background: transparent;
+    color: var(--gold);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border: 1px solid rgba(201,168,76,0.4);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .btn-generate:hover { background: rgba(201,168,76,0.1); border-color: var(--gold); }
+  .btn-generate:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .btn-gen-video {
+    color: var(--teal);
+    border-color: rgba(45,212,191,0.3);
+  }
+
+  .btn-gen-video:hover { background: rgba(45,212,191,0.08); border-color: var(--teal); }
+
+  /* Image Preview */
+  .image-preview {
+    margin: 0 20px 20px;
+    border-radius: 2px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    display: none;
+    animation: fadeIn 0.6s ease;
+  }
+
+  .image-preview img {
+    width: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  .image-preview.visible { display: block; }
+
+  /* Video Prompt Card */
+  .video-prompt-card {
+    background: var(--surface);
+    border: 1px solid rgba(45,212,191,0.15);
+    border-radius: 2px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    animation: fadeUp 0.4s ease forwards;
+    opacity: 0;
+  }
+
+  .video-prompt-card .prompt-card-header {
+    border-color: rgba(45,212,191,0.15);
+  }
+
+  .optimized-prompt {
+    padding: 12px 20px;
+    background: rgba(45,212,191,0.04);
+    border-bottom: 1px solid rgba(45,212,191,0.1);
+  }
+
+  .optimized-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--teal);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    opacity: 0.7;
+  }
+
+  .optimized-text {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.6;
+    font-style: italic;
+  }
+
+  .camera-highlight {
+    color: var(--teal);
+    font-style: normal;
+    font-weight: 700;
+  }
+
+  /* Workshop actions */
+  .workshop-actions {
+    padding: 32px 48px;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 16px; align-items: center;
+    background: var(--bg);
+    position: sticky; bottom: 0;
+  }
+
+  /* ═══════════════════════════════════════
+     SCREEN 4 — EXPORT GALLERY
+  ═══════════════════════════════════════ */
+  .gallery-screen { padding: 100px 48px 60px; max-width: 1200px; margin: 0 auto; }
+
+  .gallery-stats {
+    display: flex; gap: 32px;
+    margin-bottom: 48px;
+    padding: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+  }
+
+  .stat-item { text-align: center; }
+  .stat-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    color: var(--gold);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .scene-tabs {
+    display: flex; gap: 8px;
+    margin-bottom: 32px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  .scene-tab {
+    padding: 8px 20px;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.3s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .scene-tab.active { border-color: var(--gold); color: var(--gold); background: rgba(201,168,76,0.06); }
+  .scene-tab:hover:not(.active) { border-color: var(--border2); color: var(--text); }
+
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+
+  .gallery-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    animation: fadeUp 0.5s ease forwards;
+    opacity: 0;
+    transition: border-color 0.3s;
+  }
+
+  .gallery-item:hover { border-color: var(--border2); }
+
+  .gallery-image {
+    width: 100%; aspect-ratio: 16/9;
+    background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted);
+    font-style: italic;
+    font-size: 14px;
+    overflow: hidden;
+  }
+
+  .gallery-image img { width: 100%; height: 100%; object-fit: cover; }
+
+  .gallery-item-footer {
+    padding: 12px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .gallery-item-name {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .download-btn {
+    background: transparent;
+    border: none;
+    color: var(--gold);
+    cursor: pointer;
+    font-size: 16px;
+    transition: opacity 0.3s;
+    opacity: 0.6;
+  }
+
+  .download-btn:hover { opacity: 1; }
+
+  .gallery-actions {
+    display: flex; gap: 16px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ─── STREAMING TEXT ─── */
+  .streaming-cursor {
+    display: inline-block;
+    width: 2px; height: 1em;
+    background: var(--gold);
+    vertical-align: text-bottom;
+    animation: blink 1s step-end infinite;
+    margin-left: 2px;
+  }
+
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+
+  /* ─── TOAST ─── */
+  .toast {
+    position: fixed; bottom: 32px; right: 32px;
+    padding: 16px 24px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 2px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--text);
+    z-index: 9000;
+    animation: toastIn 0.3s ease forwards;
+    max-width: 320px;
+  }
+
+  .toast.success { border-color: rgba(45,212,191,0.4); color: var(--teal); }
+  .toast.error   { border-color: rgba(239,68,68,0.4); color: var(--red); }
+
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── DIVIDER ─── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 32px 0;
+  }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 600px) {
+    .header { padding: 16px 20px; }
+    .plan-screen, .gallery-screen { padding: 100px 20px 40px; }
+    .workshop-header, .generation-workspace, .workshop-actions { padding-left: 20px; padding-right: 20px; }
+    .scene-brief { padding: 20px; }
+    .gallery-stats { gap: 16px; flex-wrap: wrap; }
+  }
+
+  /* New scene start indicator */
+  .new-scene-banner {
+    text-align: center;
+    padding: 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--gold);
+    text-transform: uppercase;
+    border: 1px solid rgba(201,168,76,0.15);
+    background: rgba(201,168,76,0.04);
+    border-radius: 2px;
+    margin-bottom: 24px;
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- HEADER -->
+  <header class="header">
+    <div class="logo">Cine<span>Forge</span></div>
+    <div class="step-nav">
+      <div class="step-dot active" id="dot-1" title="Idea"></div>
+      <div class="step-dot" id="dot-2" title="Plan"></div>
+      <div class="step-dot" id="dot-3" title="Workshop"></div>
+      <div class="step-dot" id="dot-4" title="Gallery"></div>
+    </div>
+  </header>
+
+  <!-- LOADING OVERLAY -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-reel"></div>
+    <div class="loading-text" id="loadingLabel">Generating Story Plan</div>
+    <div class="loading-sub" id="loadingSubtext">The AI is crafting your cinematic universe…</div>
+  </div>
+
+  <!-- SCREEN 1: IDEA INPUT -->
+  <div class="screen active" id="screen-idea">
+    <div class="idea-screen">
+      <div class="filmstrip-top" id="strip-top"></div>
+      <div class="idea-content">
+        <div class="eyebrow">⬡ AI Storyboard Studio</div>
+        <h1 class="hero">Your Story.<br><em>Visualized.</em></h1>
+        <p class="subtitle">Transform any movie concept into a fully structured storyboard<br>with scenes, characters, and image sequences — in minutes.</p>
+        <div class="textarea-wrap">
+          <textarea
+            class="idea-textarea"
+            id="ideaInput"
+            placeholder="A lone robot wandering a post-apocalyptic desert discovers the last functioning greenhouse on Earth, guarded by a ferocious drone — but the robot carries a seed that could change everything…"
+            maxlength="2000"
+          ></textarea>
+          <div class="char-count"><span id="charCount">0</span>/2000</div>
+        </div>
+        <button class="btn-primary" id="generateBtn" onclick="startPipeline()">
+          <span class="btn-text">Generate Storyboard →</span>
+          <div class="spinner"></div>
+        </button>
+      </div>
+      <div class="filmstrip-bottom" id="strip-bottom"></div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: STORY PLAN REVIEW -->
+  <div class="screen" id="screen-plan">
+    <div class="plan-screen">
+      <div class="eyebrow">Step 02 / 04</div>
+      <div class="screen-title">Story Plan Review</div>
+      <p class="screen-subtitle">Review the generated story structure. Approve to begin scene generation.</p>
+
+      <div class="plan-grid">
+        <div class="card">
+          <div class="card-label">📖 Story Snapshot</div>
+          <div class="story-snapshot" id="storySnapshotText">
+            <span class="streaming-cursor"></span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-label">👥 Characters</div>
+          <div class="characters-list" id="charactersList"></div>
+        </div>
+      </div>
+
+      <div class="scenes-list" id="scenesListPlan"></div>
+
+      <div class="plan-actions">
+        <button class="btn-primary" onclick="approvePlan()">✅ Approve Plan</button>
+        <button class="btn-secondary" onclick="regeneratePlan()">🔄 Regenerate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: SCENE WORKSHOP -->
+  <div class="screen" id="screen-workshop">
+    <div class="workshop-header">
+      <div class="progress-bar-wrap">
+        <div class="progress-label">Scene <span id="currentSceneNum">1</span> of <span id="totalScenes">5</span></div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill" style="width:20%"></div>
+        </div>
+        <div class="progress-label" id="progressPct">20%</div>
+      </div>
+      <div class="eyebrow" id="sceneTitle" style="margin-bottom:0">Scene 1 · Loading…</div>
+    </div>
+
+    <div class="workshop-layout">
+      <!-- Scene Brief -->
+      <div class="scene-brief">
+        <div class="brief-section">
+          <div class="brief-label">Scene Goal</div>
+          <div class="brief-value" id="sceneGoal">—</div>
+        </div>
+        <div class="brief-section">
+          <div class="brief-label">Location</div>
+          <div class="brief-value" id="sceneLocation">—</div>
+        </div>
+        <div class="brief-section">
+          <div class="brief-label">Characters Present</div>
+          <div class="char-badges" id="sceneCharBadges"></div>
+        </div>
+        <div class="brief-section">
+          <div class="brief-label">Scene Description</div>
+          <div class="brief-value" id="sceneDescription" style="font-size:14px;color:var(--muted)">—</div>
+        </div>
+      </div>
+
+      <!-- Generation Workspace -->
+      <div class="generation-workspace">
+        <div id="workspaceContent"></div>
+      </div>
+    </div>
+
+    <div class="workshop-actions">
+      <button class="btn-primary" id="approveSceneBtn" onclick="approveScene()">✅ Approve & Next →</button>
+      <button class="btn-secondary" onclick="skipScene()">⏭ Skip</button>
+      <button class="btn-secondary" onclick="regenerateScene()">🔄 Regen Scene</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: EXPORT GALLERY -->
+  <div class="screen" id="screen-gallery">
+    <div class="gallery-screen">
+      <div class="eyebrow">Step 04 / 04</div>
+      <div class="screen-title">Export Gallery</div>
+      <p class="screen-subtitle">Your storyboard is complete. Download your generated assets.</p>
+
+      <div class="gallery-stats" id="galleryStats">
+        <div class="stat-item">
+          <div class="stat-number" id="statScenes">0</div>
+          <div class="stat-label">Scenes</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="statImages">0</div>
+          <div class="stat-label">Images</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="statVideos">0</div>
+          <div class="stat-label">Video Clips</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="statChars">0</div>
+          <div class="stat-label">Characters</div>
+        </div>
+      </div>
+
+      <div class="scene-tabs" id="sceneTabs"></div>
+      <div class="gallery-grid" id="galleryGrid"></div>
+
+      <div class="gallery-actions">
+        <button class="btn-primary" onclick="downloadAll('images')">⬇ Download All Images</button>
+        <button class="btn-secondary" onclick="downloadAll('videos')">⬇ Download All Videos</button>
+        <button class="btn-secondary" onclick="startOver()">↺ New Storyboard</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+const state = {
+  screen: 'idea',
+  movieIdea: '',
+  storySnapshot: '',
+  characterDefinitions: {},
+  scenes: [],
+  currentSceneIndex: 0,
+  finalResolution: '',
+  imageStatuses: {}, // key: `${sceneIdx}-${imgIdx}` → { status, url }
+};
+
+// ═══════════════════════════════════════════════════════
+//  ROUTING
+// ═══════════════════════════════════════════════════════
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  state.screen = name;
+  updateStepDots();
+}
+
+function updateStepDots() {
+  const steps = ['idea', 'plan', 'workshop', 'gallery'];
+  const idx = steps.indexOf(state.screen);
+  steps.forEach((s, i) => {
+    const dot = document.getElementById('dot-' + (i + 1));
+    dot.classList.remove('active', 'done');
+    if (i < idx) dot.classList.add('done');
+    else if (i === idx) dot.classList.add('active');
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  FILM STRIP
+// ═══════════════════════════════════════════════════════
+function buildFilmStrip(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = '';
+  const count = Math.ceil(window.innerWidth / 48) + 2;
+  for (let i = 0; i < count; i++) {
+    const h = document.createElement('div');
+    h.className = 'film-hole';
+    el.appendChild(h);
+  }
+}
+
+buildFilmStrip('strip-top');
+buildFilmStrip('strip-bottom');
+window.addEventListener('resize', () => {
+  buildFilmStrip('strip-top');
+  buildFilmStrip('strip-bottom');
+});
+
+// ═══════════════════════════════════════════════════════
+//  CHAR COUNT
+// ═══════════════════════════════════════════════════════
+document.getElementById('ideaInput').addEventListener('input', function () {
+  document.getElementById('charCount').textContent = this.value.length;
+});
+
+// ═══════════════════════════════════════════════════════
+//  LOADING OVERLAY
+// ═══════════════════════════════════════════════════════
+function showLoading(label = 'Generating…', sub = 'The AI is working on your story…') {
+  document.getElementById('loadingLabel').textContent = label;
+  document.getElementById('loadingSubtext').textContent = sub;
+  document.getElementById('loadingOverlay').classList.add('active');
+}
+
+function hideLoading() {
+  document.getElementById('loadingOverlay').classList.remove('active');
+}
+
+// ═══════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════
+function showToast(msg, type = '') {
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ═══════════════════════════════════════════════════════
+//  ANTHROPIC API CALL
+// ═══════════════════════════════════════════════════════
+async function callClaude(prompt, systemPrompt = '') {
+  const messages = [{ role: 'user', content: prompt }];
+  const body = {
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 4096,
+    messages,
+  };
+  if (systemPrompt) body.system = systemPrompt;
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error?.message || `API error ${resp.status}`);
+  }
+
+  const data = await resp.json();
+  return data.content.map(b => b.text || '').join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  STREAM CLAUDE (fake typewriter from full response)
+// ═══════════════════════════════════════════════════════
+async function streamToElement(el, text, speedMs = 12) {
+  el.textContent = '';
+  const cursor = document.createElement('span');
+  cursor.className = 'streaming-cursor';
+  el.appendChild(cursor);
+  for (let i = 0; i < text.length; i++) {
+    cursor.insertAdjacentText('beforebegin', text[i]);
+    await new Promise(r => setTimeout(r, speedMs));
+  }
+  cursor.remove();
+}
+
+// ═══════════════════════════════════════════════════════
+//  PARSE PLAN RESPONSE
+// ═══════════════════════════════════════════════════════
+function parsePlanResponse(raw) {
+  // Extract story snapshot
+  const snapshotMatch = raw.match(/STORY_SNAPSHOT:([\s\S]*?)(?=CHARACTERS:|$)/i);
+  const storySnapshot = snapshotMatch ? snapshotMatch[1].trim() : raw.substring(0, 300);
+
+  // Extract characters
+  const charsMatch = raw.match(/CHARACTERS:([\s\S]*?)(?=SCENES:|$)/i);
+  const characters = {};
+  if (charsMatch) {
+    const lines = charsMatch[1].trim().split('\n').filter(l => l.trim());
+    lines.forEach(line => {
+      const m = line.match(/^([A-Z][^:—–-]+)[:\s—–-]+(.+)$/);
+      if (m) characters[m[1].trim()] = m[2].trim();
+    });
+  }
+
+  // Extract scenes
+  const scenesMatch = raw.match(/SCENES:([\s\S]*?)(?=END_PLAN|$)/i);
+  const scenes = [];
+  if (scenesMatch) {
+    const sceneBlocks = scenesMatch[1].split(/SCENE\s*\d+[:\s]/i).filter(b => b.trim());
+    sceneBlocks.forEach((block, idx) => {
+      const goalM    = block.match(/GOAL[:\s]+([^\n]+)/i);
+      const locM     = block.match(/LOCATION[:\s]+([^\n]+)/i);
+      const charsM   = block.match(/CHARACTERS[:\s]+([^\n]+)/i);
+      const descM    = block.match(/DESC(?:RIPTION)?[:\s]+([^\n]+)/i);
+      const titleM   = block.match(/TITLE[:\s]+([^\n]+)/i);
+      const charsPresent = charsM
+        ? charsM[1].split(/[,;]/).map(c => c.trim().toUpperCase()).filter(Boolean)
+        : Object.keys(characters).slice(0, 2);
+      scenes.push({
+        sceneNumber: idx + 1,
+        title: titleM ? titleM[1].trim() : `Scene ${idx + 1}`,
+        goal: goalM ? goalM[1].trim() : 'The scene unfolds',
+        location: locM ? locM[1].trim() : 'Unknown location',
+        charactersPresent: charsPresent,
+        sceneText: block.trim(),
+        description: descM ? descM[1].trim() : '',
+        imageSequence: [],
+        videoMotionPrompts: [],
+        approved: false,
+        skipped: false,
+      });
+    });
+  }
+
+  // Fallback: if parsing failed, create dummy scenes from the raw text
+  if (scenes.length === 0) {
+    const fallbackScenes = raw.split(/\n{2,}/).filter(b => b.length > 80).slice(0, 5);
+    fallbackScenes.forEach((block, idx) => {
+      scenes.push({
+        sceneNumber: idx + 1,
+        title: `Scene ${idx + 1}`,
+        goal: 'Scene unfolds',
+        location: 'Location',
+        charactersPresent: Object.keys(characters).slice(0, 2),
+        sceneText: block,
+        description: block.substring(0, 120),
+        imageSequence: [],
+        videoMotionPrompts: [],
+        approved: false,
+        skipped: false,
+      });
+    });
+  }
+
+  return { storySnapshot, characters, scenes };
+}
+
+// ═══════════════════════════════════════════════════════
+//  PARSE SCENE RESPONSE
+// ═══════════════════════════════════════════════════════
+function parseSceneResponse(raw, scene) {
+  const images = [];
+  const videos = [];
+
+  // Extract image prompts
+  const imgSection = raw.match(/IMAGE[S_\s]*(?:SEQUENCE|PROMPTS)[:\s]*([\s\S]*?)(?=VIDEO|$)/i);
+  if (imgSection) {
+    const imgBlocks = imgSection[1].split(/IMAGE\s*\d+[:\s]/i).filter(b => b.trim());
+    imgBlocks.forEach((block, idx) => {
+      const promptM = block.match(/PROMPT[:\s]+([^\n]+(?:\n(?!IMAGE|VIDEO)[^\n]+)*)/i);
+      const labelM  = block.match(/LABEL[:\s]+([^\n]+)/i);
+      images.push({
+        index: idx,
+        label: labelM ? labelM[1].trim() : `Frame ${idx + 1}`,
+        prompt: promptM ? promptM[1].trim() : block.trim().substring(0, 200),
+        status: 'pending',
+        generatedUrl: null,
+      });
+    });
+  }
+
+  // Extract video prompts
+  const vidSection = raw.match(/VIDEO[S_\s]*(?:PROMPTS?|MOTION)[:\s]*([\s\S]*?)(?=END_SCENE|$)/i);
+  if (vidSection) {
+    const vidBlocks = vidSection[1].split(/VIDEO\s*\d+[:\s]/i).filter(b => b.trim());
+    vidBlocks.forEach((block, idx) => {
+      const promptM = block.match(/PROMPT[:\s]+([^\n]+(?:\n(?!IMAGE|VIDEO|END)[^\n]+)*)/i);
+      const cameraM = block.match(/CAMERA[:\s]+([^\n]+)/i);
+      const inputM  = block.match(/INPUT[:\s]+([^\n]+)/i);
+      videos.push({
+        index: idx,
+        rawPrompt: promptM ? promptM[1].trim() : block.trim().substring(0, 200),
+        optimizedPrompt: promptM ? promptM[1].trim() + (cameraM ? ` — ${cameraM[1].trim()}` : '') : block.trim().substring(0, 200),
+        cameraMove: cameraM ? cameraM[1].trim() : 'Slow dolly in',
+        inputImages: inputM ? inputM[1].trim() : `IMAGE ${idx + 1}`,
+        status: 'pending',
+        generatedUrl: null,
+      });
+    });
+  }
+
+  // Fallback if parsing finds nothing
+  if (images.length === 0) {
+    for (let i = 0; i < 3; i++) {
+      images.push({
+        index: i,
+        label: `Frame ${i + 1}`,
+        prompt: `${scene.goal}. ${scene.location}. Cinematic composition, dramatic lighting, film grain, 4K. Frame ${i + 1} of the scene.`,
+        status: 'pending',
+        generatedUrl: null,
+      });
+    }
+  }
+
+  if (videos.length === 0) {
+    videos.push({
+      index: 0,
+      rawPrompt: `${scene.goal}. Camera movement through ${scene.location}.`,
+      optimizedPrompt: `${scene.goal}. Camera movement through ${scene.location}. Slow dolly in, cinematic lighting.`,
+      cameraMove: 'Slow dolly in',
+      inputImages: 'IMAGE 1',
+      status: 'pending',
+      generatedUrl: null,
+    });
+  }
+
+  return { images, videos };
+}
+
+// ═══════════════════════════════════════════════════════
+//  SCREEN 1 → START PIPELINE
+// ═══════════════════════════════════════════════════════
+async function startPipeline() {
+  const idea = document.getElementById('ideaInput').value.trim();
+  if (!idea) { showToast('Please enter your movie idea first', 'error'); return; }
+
+  state.movieIdea = idea;
+  const btn = document.getElementById('generateBtn');
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  showLoading('Generating Story Plan', 'Crafting your cinematic universe — this takes 15–30 seconds…');
+
+  try {
+    const systemPrompt = `You are a professional Hollywood story developer. Generate structured storyboard plans from movie ideas.
+Always respond in this EXACT format:
+
+STORY_SNAPSHOT:
+[2-3 sentence dramatic summary of the story arc]
+
+CHARACTERS:
+[CHARACTER NAME]: [Brief vivid description, 1-2 sentences]
+[CHARACTER NAME]: [Brief vivid description, 1-2 sentences]
+
+SCENES:
+SCENE 1: [TITLE]
+GOAL: [What happens / dramatic goal of scene]
+LOCATION: [Specific location]
+CHARACTERS: [CHAR1, CHAR2]
+DESCRIPTION: [1-2 sentence visual description]
+
+SCENE 2: [TITLE]
+GOAL: [...]
+LOCATION: [...]
+CHARACTERS: [...]
+DESCRIPTION: [...]
+
+[Continue for 4-5 scenes total]
+
+END_PLAN`;
+
+    const raw = await callClaude(
+      `Generate a cinematic storyboard plan for this movie idea:\n\n${idea}`,
+      systemPrompt
+    );
+
+    const { storySnapshot, characters, scenes } = parsePlanResponse(raw);
+    state.storySnapshot = storySnapshot;
+    state.characterDefinitions = characters;
+    state.scenes = scenes;
+
+    hideLoading();
+    btn.classList.remove('loading');
+    btn.disabled = false;
+
+    renderPlanScreen();
+    showScreen('plan');
+  } catch (err) {
+    hideLoading();
+    btn.classList.remove('loading');
+    btn.disabled = false;
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  SCREEN 2 — RENDER
+// ═══════════════════════════════════════════════════════
+function renderPlanScreen() {
+  // Story snapshot with typewriter
+  const el = document.getElementById('storySnapshotText');
+  streamToElement(el, state.storySnapshot, 18);
+
+  // Characters
+  const charList = document.getElementById('charactersList');
+  charList.innerHTML = '';
+  const chars = Object.entries(state.characterDefinitions);
+  chars.forEach(([name, desc], i) => {
+    const item = document.createElement('div');
+    item.className = 'character-item';
+    item.style.animationDelay = `${i * 0.12 + 0.3}s`;
+    item.innerHTML = `
+      <div class="char-avatar">${name[0]}</div>
+      <div>
+        <div class="char-name">${name}</div>
+        <div class="char-desc">${desc}</div>
+      </div>
+    `;
+    charList.appendChild(item);
+  });
+
+  // Scenes
+  const scenesList = document.getElementById('scenesListPlan');
+  scenesList.innerHTML = '';
+  state.scenes.forEach((scene, i) => {
+    const card = document.createElement('div');
+    card.className = 'scene-card-plan';
+    card.style.animationDelay = `${i * 0.1 + 0.2}s`;
+    const charTags = scene.charactersPresent.map(c =>
+      `<span class="tag char-tag">${c}</span>`
+    ).join('');
+    card.innerHTML = `
+      <div class="scene-number-badge">0${scene.sceneNumber}</div>
+      <div class="scene-info">
+        <h3>${scene.title}</h3>
+        <p>${scene.goal}</p>
+      </div>
+      <div class="scene-tags">
+        <span class="tag">${scene.location}</span>
+        ${charTags}
+      </div>
+    `;
+    scenesList.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  SCREEN 2 — APPROVE / REGEN
+// ═══════════════════════════════════════════════════════
+async function approvePlan() {
+  state.currentSceneIndex = 0;
+  await loadSceneWorkshop(0);
+  showScreen('workshop');
+}
+
+async function regeneratePlan() {
+  showLoading('Regenerating Plan', 'Creating a fresh story from your idea…');
+  try {
+    const raw = await callClaude(
+      `Generate a completely different cinematic storyboard plan for this movie idea (different tone, different structure):\n\n${state.movieIdea}`,
+      `You are a professional Hollywood story developer. Always respond in this EXACT format:
+
+STORY_SNAPSHOT:
+[2-3 sentence dramatic summary]
+
+CHARACTERS:
+[NAME]: [Description]
+
+SCENES:
+SCENE 1: [TITLE]
+GOAL: [Goal]
+LOCATION: [Location]
+CHARACTERS: [Names]
+DESCRIPTION: [Description]
+
+[4-5 scenes]
+END_PLAN`
+    );
+
+    const { storySnapshot, characters, scenes } = parsePlanResponse(raw);
+    state.storySnapshot = storySnapshot;
+    state.characterDefinitions = characters;
+    state.scenes = scenes;
+    hideLoading();
+    renderPlanScreen();
+    showToast('New story plan generated!', 'success');
+  } catch (err) {
+    hideLoading();
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  SCREEN 3 — LOAD SCENE
+// ═══════════════════════════════════════════════════════
+async function loadSceneWorkshop(sceneIdx) {
+  const scene = state.scenes[sceneIdx];
+  state.currentSceneIndex = sceneIdx;
+
+  // Update header
+  const pct = Math.round(((sceneIdx + 1) / state.scenes.length) * 100);
+  document.getElementById('currentSceneNum').textContent = sceneIdx + 1;
+  document.getElementById('totalScenes').textContent = state.scenes.length;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('sceneTitle').textContent =
+    `Scene ${scene.sceneNumber} · ${scene.title}`;
+
+  // Brief
+  document.getElementById('sceneGoal').textContent = scene.goal;
+  document.getElementById('sceneLocation').textContent = scene.location;
+  document.getElementById('sceneDescription').textContent = scene.description || scene.sceneText?.substring(0, 160) || '';
+
+  const badgesEl = document.getElementById('sceneCharBadges');
+  badgesEl.innerHTML = '';
+  scene.charactersPresent.forEach(c => {
+    const b = document.createElement('div');
+    b.className = 'char-badge';
+    b.textContent = c;
+    badgesEl.appendChild(b);
+  });
+
+  // If scene not yet processed, call AI
+  if (scene.imageSequence.length === 0) {
+    await processScene(sceneIdx);
+  } else {
+    renderWorkspace(sceneIdx);
+  }
+}
+
+async function processScene(sceneIdx) {
+  const scene = state.scenes[sceneIdx];
+  const workspaceEl = document.getElementById('workspaceContent');
+  workspaceEl.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted);font-style:italic">Generating scene script…<div class="loading-reel" style="margin:24px auto;width:48px;height:48px;border-width:2px"></div></div>';
+
+  const charContext = scene.charactersPresent
+    .filter(c => state.characterDefinitions[c])
+    .map(c => `${c}: ${state.characterDefinitions[c]}`)
+    .join('\n');
+
+  try {
+    const raw = await callClaude(
+      `Generate detailed image and video prompts for this storyboard scene.
+
+MOVIE IDEA: ${state.movieIdea}
+
+SCENE:
+Title: ${scene.title}
+Goal: ${scene.goal}
+Location: ${scene.location}
+Characters: ${scene.charactersPresent.join(', ')}
+${charContext ? `\nCharacter descriptions:\n${charContext}` : ''}
+Scene description: ${scene.sceneText}
+
+Respond in this EXACT format:
+
+IMAGES_SEQUENCE:
+IMAGE 1:
+LABEL: [Short label like "Establishing shot"]
+PROMPT: [Detailed Stable Diffusion / Midjourney style image prompt, cinematic, describing exactly what to render — characters, setting, lighting, mood, camera angle, film look]
+
+IMAGE 2:
+LABEL: [Label]
+PROMPT: [Detailed prompt]
+
+IMAGE 3:
+LABEL: [Label]
+PROMPT: [Detailed prompt]
+
+VIDEO_PROMPTS:
+VIDEO 1:
+INPUT: IMAGE 1
+CAMERA: [Specific camera move, e.g. "Slow dolly in", "Handheld tracking shot", "Aerial crane up"]
+PROMPT: [Motion description for video generation — what moves, how, atmosphere, duration hint]
+
+VIDEO 2:
+INPUT: IMAGE 2
+CAMERA: [Camera move]
+PROMPT: [Motion prompt]
+
+END_SCENE`,
+      'You are a cinematographer and prompt engineer for AI image and video generation. Be specific, vivid, and cinematic.'
+    );
+
+    const { images, videos } = parseSceneResponse(raw, scene);
+    state.scenes[sceneIdx].imageSequence = images;
+    state.scenes[sceneIdx].videoMotionPrompts = videos;
+    renderWorkspace(sceneIdx);
+  } catch (err) {
+    workspaceEl.innerHTML = `<div style="padding:40px;color:var(--red);font-style:italic">Error generating scene: ${err.message}</div>`;
+    showToast('Scene generation error', 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  SCREEN 3 — RENDER WORKSPACE
+// ═══════════════════════════════════════════════════════
+function renderWorkspace(sceneIdx) {
+  const scene = state.scenes[sceneIdx];
+  const ws = document.getElementById('workspaceContent');
+  ws.innerHTML = '';
+
+  // Image sequence section
+  const imgTitle = document.createElement('div');
+  imgTitle.className = 'workspace-section-title';
+  imgTitle.textContent = 'Image Sequence';
+  ws.appendChild(imgTitle);
+
+  scene.imageSequence.forEach((img, imgIdx) => {
+    const card = createImagePromptCard(sceneIdx, imgIdx, img);
+    ws.appendChild(card);
+    // Stagger animation
+    setTimeout(() => { card.style.opacity = '1'; }, imgIdx * 80);
+  });
+
+  // Video prompts section
+  const vidTitle = document.createElement('div');
+  vidTitle.className = 'workspace-section-title';
+  vidTitle.textContent = 'Video Motion Prompts';
+  ws.appendChild(vidTitle);
+
+  scene.videoMotionPrompts.forEach((vid, vidIdx) => {
+    const card = createVideoPromptCard(sceneIdx, vidIdx, vid);
+    ws.appendChild(card);
+    setTimeout(() => { card.style.opacity = '1'; }, (scene.imageSequence.length + vidIdx) * 80);
+  });
+}
+
+function createImagePromptCard(sceneIdx, imgIdx, img) {
+  const card = document.createElement('div');
+  card.className = 'prompt-card';
+  card.id = `img-card-${sceneIdx}-${imgIdx}`;
+  card.innerHTML = `
+    <div class="prompt-card-header">
+      <div class="prompt-index">IMAGE ${imgIdx + 1} · ${img.label}</div>
+      <span class="status-badge status-${img.status}" id="img-status-${sceneIdx}-${imgIdx}">
+        ${statusLabel(img.status)}
+      </span>
+    </div>
+    <div class="prompt-text">${img.prompt}</div>
+    <div class="prompt-actions">
+      <button class="btn-generate" id="img-btn-${sceneIdx}-${imgIdx}"
+        onclick="generateImage(${sceneIdx}, ${imgIdx})">
+        🎨 Generate Image
+      </button>
+      <span style="font-family:var(--mono,monospace);font-size:11px;color:var(--muted);letter-spacing:1px">
+        ${img.status === 'generating' ? 'Processing…' : ''}
+      </span>
+    </div>
+    <div class="image-preview ${img.generatedUrl ? 'visible' : ''}" id="img-preview-${sceneIdx}-${imgIdx}">
+      ${img.generatedUrl ? `<img src="${img.generatedUrl}" alt="Generated scene image">` : ''}
+    </div>
+  `;
+
+  if (img.status === 'generating') {
+    card.querySelector(`#img-btn-${sceneIdx}-${imgIdx}`).disabled = true;
+  }
+
+  return card;
+}
+
+function createVideoPromptCard(sceneIdx, vidIdx, vid) {
+  const card = document.createElement('div');
+  card.className = 'video-prompt-card';
+  card.id = `vid-card-${sceneIdx}-${vidIdx}`;
+
+  // Check if referenced image is ready
+  const imgRef = vid.inputImages.match(/\d+/);
+  const refImgIdx = imgRef ? parseInt(imgRef[0]) - 1 : 0;
+  const refImg = state.scenes[sceneIdx].imageSequence[refImgIdx];
+  const imgReady = refImg?.status === 'done';
+
+  // Highlight camera move in optimized prompt
+  let optimizedDisplay = vid.optimizedPrompt || vid.rawPrompt;
+  if (vid.cameraMove) {
+    optimizedDisplay = optimizedDisplay.replace(
+      vid.cameraMove,
+      `<span class="camera-highlight">${vid.cameraMove}</span>`
+    );
+  }
+
+  card.innerHTML = `
+    <div class="prompt-card-header">
+      <div class="prompt-index">VIDEO ${vidIdx + 1} · refs ${vid.inputImages}</div>
+      <span class="status-badge status-${vid.status}" id="vid-status-${sceneIdx}-${vidIdx}">
+        ${statusLabel(vid.status)}
+      </span>
+    </div>
+    <div class="prompt-text">${vid.rawPrompt}</div>
+    <div class="optimized-prompt">
+      <div class="optimized-label">⬡ Camera-Optimized Prompt</div>
+      <div class="optimized-text">${optimizedDisplay}</div>
+    </div>
+    <div class="prompt-actions">
+      <button class="btn-generate btn-gen-video" id="vid-btn-${sceneIdx}-${vidIdx}"
+        onclick="generateVideo(${sceneIdx}, ${vidIdx})"
+        ${imgReady ? '' : 'disabled'}>
+        🎬 Generate Video
+      </button>
+      ${!imgReady ? `<span style="font-size:12px;color:var(--muted);font-style:italic">Generate image ${refImgIdx + 1} first</span>` : ''}
+    </div>
+  `;
+
+  return card;
+}
+
+function statusLabel(s) {
+  return { pending: 'Pending', generating: 'Generating…', done: 'Done ✓', error: 'Error' }[s] || s;
+}
+
+// ═══════════════════════════════════════════════════════
+//  GENERATE IMAGE (simulated — calls AI for description)
+// ═══════════════════════════════════════════════════════
+async function generateImage(sceneIdx, imgIdx) {
+  const img = state.scenes[sceneIdx].imageSequence[imgIdx];
+  img.status = 'generating';
+  updateImageCard(sceneIdx, imgIdx);
+
+  try {
+    // Since we can't call actual image generation APIs from browser,
+    // we simulate with a beautiful placeholder from picsum with a relevant seed
+    await new Promise(r => setTimeout(r, 1800 + Math.random() * 1200));
+
+    // Use a deterministic seed based on scene + image for consistent "results"
+    const seed = (sceneIdx * 100 + imgIdx + 42) * 137 % 1000;
+    const placeholderUrl = `https://picsum.photos/seed/${seed}/800/450`;
+
+    img.status = 'done';
+    img.generatedUrl = placeholderUrl;
+    state.scenes[sceneIdx].imageSequence[imgIdx] = img;
+    updateImageCard(sceneIdx, imgIdx);
+
+    // Re-enable video buttons that reference this image
+    state.scenes[sceneIdx].videoMotionPrompts.forEach((vid, vIdx) => {
+      const refM = vid.inputImages.match(/\d+/);
+      if (refM && parseInt(refM[0]) - 1 === imgIdx) {
+        const vBtn = document.getElementById(`vid-btn-${sceneIdx}-${vIdx}`);
+        if (vBtn) {
+          vBtn.disabled = false;
+          const notice = vBtn.parentElement.querySelector('span');
+          if (notice) notice.remove();
+        }
+      }
+    });
+
+    showToast(`Image ${imgIdx + 1} generated!`, 'success');
+  } catch (err) {
+    img.status = 'error';
+    updateImageCard(sceneIdx, imgIdx);
+    showToast('Image generation failed', 'error');
+  }
+}
+
+function updateImageCard(sceneIdx, imgIdx) {
+  const img = state.scenes[sceneIdx].imageSequence[imgIdx];
+  const statusEl = document.getElementById(`img-status-${sceneIdx}-${imgIdx}`);
+  const btnEl = document.getElementById(`img-btn-${sceneIdx}-${imgIdx}`);
+  const previewEl = document.getElementById(`img-preview-${sceneIdx}-${imgIdx}`);
+
+  if (statusEl) {
+    statusEl.className = `status-badge status-${img.status}`;
+    statusEl.textContent = statusLabel(img.status);
+  }
+
+  if (btnEl) {
+    btnEl.disabled = img.status === 'generating' || img.status === 'done';
+    if (img.status === 'generating') btnEl.textContent = '⏳ Generating…';
+    else if (img.status === 'done') btnEl.textContent = '✓ Generated';
+    else btnEl.textContent = '🎨 Generate Image';
+  }
+
+  if (previewEl && img.generatedUrl) {
+    previewEl.innerHTML = `<img src="${img.generatedUrl}" alt="Generated scene image">`;
+    previewEl.classList.add('visible');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  GENERATE VIDEO (simulated)
+// ═══════════════════════════════════════════════════════
+async function generateVideo(sceneIdx, vidIdx) {
+  const vid = state.scenes[sceneIdx].videoMotionPrompts[vidIdx];
+  vid.status = 'generating';
+
+  const statusEl = document.getElementById(`vid-status-${sceneIdx}-${vidIdx}`);
+  const btnEl = document.getElementById(`vid-btn-${sceneIdx}-${vidIdx}`);
+
+  if (statusEl) { statusEl.className = 'status-badge status-generating'; statusEl.textContent = 'Generating…'; }
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = '⏳ Processing…'; }
+
+  try {
+    await new Promise(r => setTimeout(r, 3000 + Math.random() * 2000));
+    vid.status = 'done';
+    vid.generatedUrl = 'simulated';
+
+    if (statusEl) { statusEl.className = 'status-badge status-done'; statusEl.textContent = 'Done ✓'; }
+    if (btnEl) { btnEl.textContent = '✓ Video Ready'; }
+
+    showToast(`Video ${vidIdx + 1} generated!`, 'success');
+  } catch (err) {
+    vid.status = 'error';
+    if (statusEl) { statusEl.className = 'status-badge status-error'; statusEl.textContent = 'Error'; }
+    if (btnEl) { btnEl.disabled = false; btnEl.textContent = '🎬 Retry'; }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  APPROVE / SKIP SCENE
+// ═══════════════════════════════════════════════════════
+async function approveScene() {
+  state.scenes[state.currentSceneIndex].approved = true;
+  await advanceScene();
+}
+
+async function skipScene() {
+  state.scenes[state.currentSceneIndex].skipped = true;
+  await advanceScene();
+}
+
+async function regenerateScene() {
+  state.scenes[state.currentSceneIndex].imageSequence = [];
+  state.scenes[state.currentSceneIndex].videoMotionPrompts = [];
+  await loadSceneWorkshop(state.currentSceneIndex);
+}
+
+async function advanceScene() {
+  const next = state.currentSceneIndex + 1;
+  if (next >= state.scenes.length) {
+    renderGallery();
+    showScreen('gallery');
+  } else {
+    showLoading(`Loading Scene ${next + 1}`, 'Preparing next scene…');
+    await loadSceneWorkshop(next);
+    hideLoading();
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  SCREEN 4 — GALLERY
+// ═══════════════════════════════════════════════════════
+function renderGallery() {
+  // Stats
+  const totalImgs = state.scenes.reduce((s, sc) => s + sc.imageSequence.filter(i => i.status === 'done').length, 0);
+  const totalVids = state.scenes.reduce((s, sc) => s + sc.videoMotionPrompts.filter(v => v.status === 'done').length, 0);
+  document.getElementById('statScenes').textContent = state.scenes.length;
+  document.getElementById('statImages').textContent = totalImgs;
+  document.getElementById('statVideos').textContent = totalVids;
+  document.getElementById('statChars').textContent = Object.keys(state.characterDefinitions).length;
+
+  // Tabs
+  const tabsEl = document.getElementById('sceneTabs');
+  tabsEl.innerHTML = '';
+  const allTab = document.createElement('button');
+  allTab.className = 'scene-tab active';
+  allTab.textContent = 'All Scenes';
+  allTab.onclick = () => renderGalleryGrid(-1, allTab);
+  tabsEl.appendChild(allTab);
+
+  state.scenes.forEach((scene, i) => {
+    const tab = document.createElement('button');
+    tab.className = 'scene-tab';
+    tab.textContent = `Scene ${scene.sceneNumber}: ${scene.title}`;
+    tab.onclick = () => renderGalleryGrid(i, tab);
+    tabsEl.appendChild(tab);
+  });
+
+  renderGalleryGrid(-1, allTab);
+}
+
+function renderGalleryGrid(filterSceneIdx, activeTab) {
+  // Update active tab
+  document.querySelectorAll('.scene-tab').forEach(t => t.classList.remove('active'));
+  if (activeTab) activeTab.classList.add('active');
+
+  const grid = document.getElementById('galleryGrid');
+  grid.innerHTML = '';
+
+  const scenesToShow = filterSceneIdx === -1 ? state.scenes : [state.scenes[filterSceneIdx]];
+
+  scenesToShow.forEach((scene, sOff) => {
+    const sceneIdx = filterSceneIdx === -1 ? sOff : filterSceneIdx;
+
+    scene.imageSequence.forEach((img, imgIdx) => {
+      const item = document.createElement('div');
+      item.className = 'gallery-item';
+      item.style.animationDelay = `${(sceneIdx * 3 + imgIdx) * 0.08}s`;
+      const hasImg = img.generatedUrl;
+      item.innerHTML = `
+        <div class="gallery-image">
+          ${hasImg
+            ? `<img src="${img.generatedUrl}" alt="${img.label}">`
+            : `<span>${img.label}</span>`
+          }
+        </div>
+        <div class="gallery-item-footer">
+          <div class="gallery-item-name">S${String(scene.sceneNumber).padStart(2,'0')}_IMG_${String(imgIdx+1).padStart(2,'0')}</div>
+          ${hasImg ? `<button class="download-btn" onclick="downloadImage('${img.generatedUrl}', 'scene_${scene.sceneNumber}_image_${imgIdx+1}.jpg')" title="Download">⬇</button>` : ''}
+        </div>
+      `;
+      setTimeout(() => item.style.opacity = '1', (sceneIdx * 3 + imgIdx) * 80);
+      grid.appendChild(item);
+    });
+  });
+
+  if (grid.children.length === 0) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--muted);font-style:italic">No generated images in this scene yet</div>';
+  }
+}
+
+function downloadImage(url, filename) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.target = '_blank';
+  a.click();
+}
+
+function downloadAll(type) {
+  if (type === 'images') {
+    state.scenes.forEach((scene, si) => {
+      scene.imageSequence.forEach((img, ii) => {
+        if (img.generatedUrl) {
+          setTimeout(() => downloadImage(img.generatedUrl, `scene_${scene.sceneNumber}_image_${ii+1}.jpg`), si * 300 + ii * 100);
+        }
+      });
+    });
+    showToast('Downloading all images…', 'success');
+  } else {
+    showToast('Video download: connect your backend to serve generated videos', '');
+  }
+}
+
+function startOver() {
+  if (!confirm('Start a new storyboard? All current progress will be lost.')) return;
+  Object.assign(state, {
+    screen: 'idea',
+    movieIdea: '',
+    storySnapshot: '',
+    characterDefinitions: {},
+    scenes: [],
+    currentSceneIndex: 0,
+    finalResolution: '',
+    imageStatuses: {},
+  });
+  document.getElementById('ideaInput').value = '';
+  document.getElementById('charCount').textContent = '0';
+  showScreen('idea');
+}
+
+// ═══════════════════════════════════════════════════════
+//  KEYBOARD SHORTCUT
+// ═══════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.metaKey && state.screen === 'idea') {
+    startPipeline();
+  }
+});
+</script>
+</body>
+</html>

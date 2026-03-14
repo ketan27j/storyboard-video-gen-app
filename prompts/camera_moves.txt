@@ -1,0 +1,50 @@
+CINEMATIC CAMERA MOVES REFERENCE
+Use these to enrich video motion prompts with professional cinematography language.
+
+--- PUSH & PULL ---
+1. Slow push in: Camera slowly dollies toward subject. Builds intimacy or tension.
+2. Fast push in (smash cut): Sudden aggressive zoom toward subject. Shock or revelation.
+3. Pull back reveal: Camera retreats to reveal a larger context. Recontextualization.
+4. Dolly zoom (Vertigo effect): Zoom out while tracking in (or vice versa). Psychological disorientation.
+
+--- TRACKING & FOLLOWING ---
+5. Side tracking shot: Camera moves laterally alongside a walking subject. Journeys, movement.
+6. Following shot: Camera stays behind subject as they move forward. Immersive, suspenseful.
+7. Leading shot: Camera moves ahead of subject who follows. Anticipation of destination.
+8. Arc shot (orbiting): Camera orbits 180° around subject. Reveals environment, triumphant moments.
+9. 360° orbit: Full circle around subject. Peak emotion, revelation.
+10. Run-and-gun handheld: Shaky close follow. Chaos, urgency, documentary realism.
+
+--- CRANE & VERTICAL ---
+11. Overhead crane descend: Bird's-eye view dropping to ground level. God's view to human scale.
+12. Crane rise: Camera lifts from subject to reveal environment. Liberation, scale reveal.
+13. Tilt up: Camera tilts from low to high on static base. Reverence, power, imposing subject.
+14. Tilt down: Camera tilts from high to low. Vulnerability, gravity, descending into something.
+15. Pedestal up (boom up): Camera rises vertically. Elevation, hope, ascent.
+16. Pedestal down (boom down): Camera descends vertically. Sinking, dread, submersion.
+
+--- STATIC & COMPOSED ---
+17. Locked-off wide establishing: Completely static wide shot. Setting context, breathing room.
+18. Locked-off close-up: Static close-up on face or object. Sustained tension, character study.
+19. Two-shot static: Static frame holding two characters. Dialogue, relationship tension.
+20. Over-the-shoulder (OTS): Camera behind one character's shoulder looking at another. Conversation, confrontation.
+21. Dutch angle (canted): Camera tilted diagonally. Unease, villainy, psychological disturbance.
+22. Low angle: Camera points up at subject. Power, dominance, menace.
+23. High angle: Camera looks down on subject. Vulnerability, smallness, surveillance.
+24. Extreme close-up (ECU): Fills frame with a detail (eye, hand, object). Hyper-focus, emotion.
+25. Extreme wide shot (EWS): Subject tiny in vast environment. Isolation, scale, existential weight.
+
+--- SPECIALTY ---
+26. Rack focus: Focus pulls from foreground to background (or reverse). Shifts narrative attention.
+27. Split diopter: Both foreground and background in focus simultaneously. Duality, juxtaposition.
+28. Whip pan: Lightning-fast lateral camera swing. Scene transition, speed, disorientation.
+29. Snap zoom: Fast manual zoom punch. Retro, comic emphasis, sudden importance.
+30. Underwater upward shot: Looking up through water surface. Mystery, transformation, drowning metaphor.
+31. POV shot: Camera as character's eyes. First-person immersion.
+32. Reverse POV: Subject looks directly into camera. Breaking fourth wall, confrontational.
+33. Bullet time / frozen orbit: Subject frozen, camera orbits. Hyper-stylized, pivotal moment.
+34. Match cut: Visual element in scene matches shape/motion of next scene. Elegant transition, thematic link.
+35. Steadicam glide: Smooth floating follow through complex space. Dreamlike, unbroken tension.
+36. Drone aerial: High altitude pullback over landscape. Epic scale, geographical context.
+37. Snorricam (body mount): Camera mounted on actor's chest pointing at face. Immersive internal state.
+38. Through-the-window shot: Camera shoots through glass, reflections visible. Voyeurism, separation, longing.
