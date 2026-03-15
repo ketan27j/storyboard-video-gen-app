@@ -3,9 +3,9 @@ import { usePipelineStore } from '../../stores/pipelineStore';
 import { useStartPipeline } from '../../hooks/usePipeline';
 
 const EXAMPLES = [
-  'A lonely lighthouse keeper discovers an ancient map inside a bottle, leading to a forgotten city beneath the ocean.',
-  'Two rival chefs from enemy families must work together to cook a legendary dish that can save their dying town.',
-  'A time-traveling archaeologist accidentally erases her own birth, and must navigate history to restore herself.',
+  'Mother (around 30s) explaining importance of Gudhi Padava festival in india to her 4 yr daughter in brief. What indian people do during that festival. eg: They mount Gudhi in their home decorated with sari, flowers, garlands, which is symbol of prosperity and new beginning. They prepare special food like Shrikhand puri, puran poli. They have shobha yatra with traditional attire of navvari and feta, dhoti.',
+  'A clever but hungry jackal accidentally falls into a vat of blue dye and emerges looking magical. The jungle animals believe he is a divine creature and crown him king. Drunk on power, the jackal enjoys luxury until one night he howls like a jackal, revealing his true identity.',
+  'In the court of wise Emperor Akbar, ministers argue over a strange mystery troubling the kingdom. The emperor turns to his clever advisor Birbal, who uses wit and simple logic to uncover the truth. Through humor and intelligence, Birbal teaches everyone that wisdom is greater than power.',
 ];
 
 export function IdeaInput() {

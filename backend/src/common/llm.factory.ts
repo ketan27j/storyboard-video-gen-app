@@ -1,6 +1,7 @@
 import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatOpenAI } from '@langchain/openai';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { ChatOpenRouter } from '@langchain/openrouter';
 
 export function createLLM() {
   const provider = process.env.LLM_PROVIDER || 'anthropic';
@@ -24,18 +25,8 @@ export function createLLM() {
       });
 
     case 'openrouter':
-      return new ChatOpenAI({
-        modelName: model || 'anthropic/claude-3.5-sonnet',
+      return new ChatOpenRouter(model || 'anthropic/claude-sonnet-4-5', {
         temperature: 0.7,
-        openAIApiKey: process.env.OPENROUTER_API_KEY,
-        configuration: {
-          baseURL: 'https://openrouter.ai/api/v1',
-          defaultHeaders: {
-            'HTTP-Referer': process.env.OPENROUTER_SITE_URL || 'http://localhost:3000',
-            'X-Title': process.env.OPENROUTER_SITE_NAME || 'Storyboard App',
-          },
-        },
-        streaming: true,
       });
 
     case 'anthropic':

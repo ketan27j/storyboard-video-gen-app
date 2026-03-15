@@ -36,7 +36,7 @@ export class GenerationService {
       backoff: { type: 'exponential', delay: 5000 },
     });
 
-    this.logger.log(`Queued image generation for session ${sessionId}, scene ${sceneIndex}, image ${imageIndex}`);
+    this.logger.log(`Queued image generation for session ${sessionId}, scene ${sceneIndex}, image ${imageIndex}, prompt ${prompt}`);
   }
 
   async queueVideoGeneration(
@@ -53,7 +53,7 @@ export class GenerationService {
       timeout: parseInt(process.env.VIDEO_GEN_TIMEOUT || '300000', 10),
     });
 
-    this.logger.log(`Queued video generation for session ${sessionId}, scene ${sceneIndex}, video ${videoIndex}`);
+    this.logger.log(`Queued video generation for session ${sessionId}, scene ${sceneIndex}, video ${videoIndex}, prompt ${prompt}`);
   }
 
   async processImageJob(data: {

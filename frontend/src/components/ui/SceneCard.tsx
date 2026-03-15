@@ -27,14 +27,14 @@ export function SceneCard({ scene, active, style }: SceneCardProps) {
           )}
         </div>
         {scene.location && (
-          <span className="text-xs font-mono text-stone-400 bg-stone-800/60 px-2 py-1 rounded whitespace-nowrap">
+          <span className="text-xs font-mono text-stone-400 bg-stone-800/60 px-2 py-1 rounded">
             📍 {scene.location}
           </span>
         )}
       </div>
 
       {scene.sceneText && (
-        <p className="text-xs text-stone-400 leading-relaxed mb-3 line-clamp-3">
+        <p className="text-xs text-stone-400 leading-relaxed mb-3">
           {scene.sceneText}
         </p>
       )}
