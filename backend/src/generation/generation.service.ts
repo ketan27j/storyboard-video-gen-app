@@ -61,8 +61,9 @@ export class GenerationService {
     sceneIndex: number;
     imageIndex: number;
     prompt: string;
+    referenceImages?: string[];
   }): Promise<void> {
-    const { sessionId, sceneIndex, imageIndex, prompt } = data;
+    const { sessionId, sceneIndex, imageIndex, prompt, referenceImages } = data;
 
     try {
       this.gateway.emitImageProgress(sessionId, sceneIndex, imageIndex, 'generating');
@@ -70,7 +71,9 @@ export class GenerationService {
       let buffer: Buffer;
 
       if (this.imageProvider === 'imagen') {
-        buffer = await this.imagenService.generateImage(prompt);
+        const refInputs = referenceImages?.map((b64) => ({ base64: b64 })) ?? undefined;
+        const result = await this.imagenService.generateImage(prompt, refInputs);
+        buffer = result.imageBuffer;
       } else if (this.imageProvider === 'leonardo') {
         buffer = await this.grokService.generateImage(prompt);
       } else {

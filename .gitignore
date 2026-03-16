@@ -111,3 +111,5 @@ temp/
 # package-lock.json
 # yarn.lock
 # pnpm-lock.yaml
+
+gcp-credentials.json
