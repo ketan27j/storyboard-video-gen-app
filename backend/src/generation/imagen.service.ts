@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { GoogleAuth } from 'google-auth-library';
+import { GoogleGenAI, GenerateContentConfig } from '@google/genai';
 
 export interface ReferenceImageInput {
   /** Base64-encoded image bytes (no data-URI prefix). */
@@ -8,11 +9,38 @@ export interface ReferenceImageInput {
   mimeType?: 'image/jpeg' | 'image/png' | 'image/webp';
 }
 
+export interface CloudStorageImageInput {
+  /** Google Cloud Storage URI (e.g., gs://bucket/file.jpg) */
+  uri: string;
+  /** MIME type of the image. Defaults to 'image/jpeg'. */
+  mimeType?: 'image/jpeg' | 'image/png' | 'image/webp';
+}
+
+export interface ImageGenerationConfig {
+  /** Aspect ratio for generated images. Valid ratios: "1:1", "3:2", "2:3", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9" */
+  aspectRatio?: '1:1' | '3:2' | '2:3' | '3:4' | '4:3' | '4:5' | '5:4' | '9:16' | '16:9' | '21:9';
+  /** Number of image candidates to generate */
+  candidateCount?: number;
+  /** Whether to include text in the response alongside images */
+  includeText?: boolean;
+}
+
 export interface GenerateImageResult {
   /** Raw image bytes of the generated image. */
   imageBuffer: Buffer;
   /** MIME type returned by the model (e.g. 'image/jpeg'). */
   mimeType: string;
+  /** Optional text response from the model */
+  textResponse?: string;
+  /** Finish reason for the generation */
+  finishReason?: string;
+}
+
+export interface ImageEditSession {
+  sessionId: string;
+  chatId: string;
+  lastImageBuffer?: Buffer;
+  lastMimeType?: string;
 }
 
 @Injectable()
@@ -25,12 +53,34 @@ export class ImagenService implements OnModuleInit {
    */
   private static readonly MAX_REFERENCE_IMAGES = 3;
 
+  /** Supported aspect ratios for image generation */
+  private static readonly SUPPORTED_ASPECT_RATIOS = [
+    '1:1', '3:2', '2:3', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9'
+  ];
+
   /** Re-use a single GoogleAuth instance across all requests. */
   private auth: GoogleAuth;
+
+  /** Request timeout in milliseconds */
+  private readonly requestTimeout = parseInt(process.env.IMAGE_GEN_TIMEOUT || '120000', 10);
+
+  /** Retry configuration */
+  private readonly maxRetries = 3;
+  private readonly retryDelay = 1000;
+
+  /** Google Gen AI client */
+  private genaiClient: GoogleGenAI;
 
   onModuleInit() {
     this.auth = new GoogleAuth({
       scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+    });
+
+    // Initialize Google Gen AI client
+    this.genaiClient = new GoogleGenAI({
+      vertexai: true,
+      project: process.env.GOOGLE_PROJECT_ID,
+      location: process.env.GOOGLE_LOCATION || 'us-central1',
     });
   }
 
@@ -41,8 +91,9 @@ export class ImagenService implements OnModuleInit {
    * and produces a new image maintaining subject consistency.
    *
    * @param prompt          Text prompt describing the desired output image.
-   * @param referenceImages Up to 3 reference images as base64 strings.
-   * @returns               Generated image buffer and its MIME type.
+   * @param referenceImages Up to 3 reference images as base64 strings or cloud storage URIs.
+   * @param config          Generation configuration including aspect ratio, candidate count, and text inclusion.
+   * @returns               Generated image buffer, MIME type, optional text response, and finish reason.
    *
    * @example
    * const result = await imagenService.generateImage(
@@ -51,14 +102,47 @@ export class ImagenService implements OnModuleInit {
    *     { base64: '<base64>', mimeType: 'image/jpeg' },
    *     { base64: '<base64>', mimeType: 'image/png'  },
    *   ],
+   *   { aspectRatio: '1:1', candidateCount: 1, includeText: true }
    * );
    */
   async generateImage(
     prompt: string,
-    referenceImages?: ReferenceImageInput[],
+    referenceImages?: (ReferenceImageInput | CloudStorageImageInput)[],
+    config?: ImageGenerationConfig,
+  ): Promise<GenerateImageResult> {
+    // Add retry logic with exponential backoff
+    let lastError: Error;
+    
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        return await this.generateImageRequest(prompt, referenceImages, config);
+      } catch (error) {
+        lastError = error as Error;
+        
+        if (attempt === this.maxRetries) {
+          this.logger.error(`Image generation failed after ${this.maxRetries} attempts: ${error.message}`);
+          throw error;
+        }
+
+        const delay = this.retryDelay * Math.pow(2, attempt - 1);
+        this.logger.warn(`Image generation attempt ${attempt} failed, retrying in ${delay}ms: ${error.message}`);
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+
+    throw lastError!;
+  }
+
+  /**
+   * Core image generation request logic using Google Gen AI SDK
+   */
+  private async generateImageRequest(
+    prompt: string,
+    referenceImages?: (ReferenceImageInput | CloudStorageImageInput)[],
+    config?: ImageGenerationConfig,
   ): Promise<GenerateImageResult> {
     const projectId = process.env.GOOGLE_PROJECT_ID;
-    const location = process.env.GOOGLE_LOCATION || 'us-central1';
 
     if (!projectId) {
       throw new Error(
@@ -79,43 +163,38 @@ export class ImagenService implements OnModuleInit {
     }
 
     // ------------------------------------------------------------------
-    // Auth — obtain a short-lived ADC token
+    // Validate aspect ratio
     // ------------------------------------------------------------------
-    const client = await this.auth.getClient();
-    const tokenResponse = await client.getAccessToken();
-    const token = tokenResponse.token;
-
-    if (!token) {
-      throw new Error('Failed to obtain Google Cloud access token via ADC.');
+    if (config?.aspectRatio && !ImagenService.SUPPORTED_ASPECT_RATIOS.includes(config.aspectRatio)) {
+      throw new Error(
+        `Unsupported aspect ratio: ${config.aspectRatio}. ` +
+          `Supported ratios: ${ImagenService.SUPPORTED_ASPECT_RATIOS.join(', ')}`
+      );
     }
 
     // ------------------------------------------------------------------
-    // Endpoint
-    // Gemini 2.5 Flash Image uses the generateContent endpoint, NOT
-    // the :predict endpoint used by Imagen models.
-    // ------------------------------------------------------------------
-    const endpoint =
-      `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}` +
-      `/locations/${location}/publishers/google/models/gemini-2.5-flash-image:generateContent`;
-
-    // ------------------------------------------------------------------
     // Build the `contents` array (Gemini multimodal message format).
-    //
-    // Layout of a single user turn:
-    //   parts: [
-    //     { inlineData: { mimeType, data } },  <- reference image 1
-    //     { inlineData: { mimeType, data } },  <- reference image 2 (optional)
-    //     { inlineData: { mimeType, data } },  <- reference image 3 (optional)
-    //     { text: "<prompt>" },                <- text instruction
-    //   ]
+    // Support both local base64 images and cloud storage URIs.
     // ------------------------------------------------------------------
-    const imageParts =
-      referenceImages?.map((img) => ({
-        inlineData: {
-          mimeType: img.mimeType ?? 'image/jpeg',
-          data: img.base64,
-        },
-      })) ?? [];
+    const imageParts = referenceImages?.map((img) => {
+      if ('uri' in img) {
+        // Cloud storage URI
+        return {
+          fileData: {
+            mimeType: img.mimeType ?? 'image/jpeg',
+            fileUri: img.uri,
+          },
+        };
+      } else {
+        // Local base64 image
+        return {
+          inlineData: {
+            mimeType: img.mimeType ?? 'image/jpeg',
+            data: img.base64,
+          },
+        };
+      }
+    }) ?? [];
 
     const contents = [
       {
@@ -128,43 +207,39 @@ export class ImagenService implements OnModuleInit {
     ];
 
     // ------------------------------------------------------------------
-    // Generation config
-    // responseModalities MUST include "IMAGE" to get image output back.
-    // Including "TEXT" as well lets the model also return a caption or
-    // description alongside the image (drop it if you only want the image).
+    // Generation config using Google Gen AI SDK types
     // ------------------------------------------------------------------
-    const generationConfig = {
-      responseModalities: ['IMAGE', 'TEXT'],
+    const generationConfig: GenerateContentConfig = {
+      responseModalities: ['IMAGE'],
     };
 
+    if (config?.includeText) {
+      generationConfig.responseModalities.push('TEXT');
+    }
+
+    if (config?.aspectRatio) {
+      generationConfig.imageConfig = {
+        aspectRatio: config.aspectRatio,
+      };
+    }
+
+    if (config?.candidateCount) {
+      generationConfig.candidateCount = config.candidateCount;
+    }
+
     // ------------------------------------------------------------------
-    // Request
+    // Request using Google Gen AI SDK
     // ------------------------------------------------------------------
     this.logger.debug(
       `Calling Gemini 2.5 Flash Image with prompt="${prompt}" ` +
         `and ${referenceImages?.length ?? 0} reference image(s).`,
     );
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ contents, generationConfig }),
+    const response = await this.genaiClient.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents,
+      config: generationConfig,
     });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      this.logger.error(
-        `Gemini 2.5 Flash Image API error (${response.status}): ${errorBody}`,
-      );
-      throw new Error(
-        `Gemini 2.5 Flash Image API responded with ${response.status}: ${errorBody}`,
-      );
-    }
-
-    const data = await response.json();
 
     // ------------------------------------------------------------------
     // Parse response
@@ -172,17 +247,27 @@ export class ImagenService implements OnModuleInit {
     // candidates[0].content.parts is an array of mixed text/image parts.
     // We pick the first image part returned.
     // ------------------------------------------------------------------
-    const parts: Array<{
-      text?: string;
-      inlineData?: { mimeType: string; data: string };
-    }> = data.candidates?.[0]?.content?.parts ?? [];
+    const candidate = response.candidates?.[0];
+    
+    if (!candidate) {
+      throw new Error('No candidates returned from Gemini 2.5 Flash Image.');
+    }
+
+    // Check finish reason
+    const finishReason = candidate.finishReason;
+    if (finishReason !== 'STOP') {
+      this.logger.warn(`Gemini 2.5 Flash Image generation finished with reason: ${finishReason}`);
+    }
+
+    const parts = candidate.content?.parts ?? [];
 
     const imagePart = parts.find((p) => p.inlineData?.data);
+    const textPart = parts.find((p) => p.text);
 
     if (!imagePart?.inlineData) {
       this.logger.error(
         'Unexpected Gemini 2.5 Flash Image response shape:',
-        JSON.stringify(data),
+        JSON.stringify(response),
       );
       throw new Error('No image data returned from Gemini 2.5 Flash Image.');
     }
@@ -190,6 +275,9 @@ export class ImagenService implements OnModuleInit {
     return {
       imageBuffer: Buffer.from(imagePart.inlineData.data, 'base64'),
       mimeType: imagePart.inlineData.mimeType,
+      textResponse: textPart?.text,
+      finishReason,
     };
   }
+
 }
