@@ -127,7 +127,7 @@ export class GenerationService {
       this.gateway.emitVideoProgress(sessionId, sceneIndex, videoIndex, 'done', url);
       this.logger.log(`Video done: ${url}`);
     } catch (err) {
-      this.logger.error(`Video generation failed: ${err.message}`);
+      this.logger.error(`Video generation failed: ${err.message}`, err.stack);
       this.gateway.emitVideoProgress(sessionId, sceneIndex, videoIndex, 'error');
       throw err;
     }
