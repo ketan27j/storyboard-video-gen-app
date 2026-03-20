@@ -1,6 +1,8 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { GoogleAuth } from 'google-auth-library';
 import { GoogleGenAI, GenerateContentConfig } from '@google/genai';
+import { PredictionServiceClient } from '@google-cloud/aiplatform';
+import { helpers } from '@google-cloud/aiplatform';
 
 export interface ReferenceImageInput {
   /** Base64-encoded image bytes (no data-URI prefix). */
@@ -65,23 +67,32 @@ export class ImagenService implements OnModuleInit {
   private readonly requestTimeout = parseInt(process.env.IMAGE_GEN_TIMEOUT || '120000', 10);
 
   /** Retry configuration */
-  private readonly maxRetries = 3;
+  private readonly maxRetries = 1;
   private readonly retryDelay = 1000;
 
   /** Google Gen AI client */
   private genaiClient: GoogleGenAI;
 
+  /** Prediction Service Client for Imagen 3.0 */
+  private predictionServiceClient: PredictionServiceClient;
+
   onModuleInit() {
     this.auth = new GoogleAuth({
       scopes: ['https://www.googleapis.com/auth/cloud-platform'],
     });
-
+    console.log(this.auth)
     // Initialize Google Gen AI client
     this.genaiClient = new GoogleGenAI({
       vertexai: true,
       project: process.env.GOOGLE_PROJECT_ID,
       location: process.env.GOOGLE_LOCATION || 'us-central1',
     });
+
+    // Initialize Prediction Service Client for Imagen 3.0
+    const clientOptions = {
+      apiEndpoint: `${process.env.GOOGLE_LOCATION || 'us-central1'}-aiplatform.googleapis.com`,
+    };
+    this.predictionServiceClient = new PredictionServiceClient(clientOptions);
   }
 
   /**
@@ -132,6 +143,82 @@ export class ImagenService implements OnModuleInit {
     }
 
     throw lastError!;
+  }
+
+  /**
+   * Generate an image using Imagen 3.0 on Vertex AI.
+   *
+   * @param prompt          Text prompt describing the desired output image.
+   * @param config          Generation configuration including aspect ratio, candidate count, and safety settings.
+   * @returns               Generated image buffer, MIME type, optional text response, and finish reason.
+   */
+  async generateImageImagen3(
+    prompt: string,
+    config?: ImageGenerationConfig,
+  ): Promise<GenerateImageResult> {
+    const projectId = process.env.GOOGLE_PROJECT_ID;
+    const location = process.env.GOOGLE_LOCATION || 'us-central1';
+
+    if (!projectId) {
+      throw new Error(
+        'GOOGLE_PROJECT_ID is not configured. ' +
+          'Set IMAGE_GEN_PROVIDER=manual to skip real generation.',
+      );
+    }
+
+    // Configure the parent resource
+    const endpoint = `projects/${projectId}/locations/${location}/publishers/google/models/imagen-3.0-generate-001`;
+
+    const promptText = {
+      prompt: prompt, // The text prompt describing what you want to see
+    };
+    const instanceValue = helpers.toValue(promptText);
+    const instances = [instanceValue];
+
+    const parameter = {
+      sampleCount: config?.candidateCount || 1,
+      aspectRatio: config?.aspectRatio || '1:1',
+      safetyFilterLevel: 'block_some',
+      personGeneration: 'allow_adult',
+    };
+    const parameters = helpers.toValue(parameter);
+    console.log('calling gemini api')
+    const request = {
+      endpoint,
+      instances,
+      parameters,
+    };
+
+    // Predict request
+    let response;
+    try {
+      [response] = await this.predictionServiceClient.predict(request);
+    } catch (error) {
+      this.logger.error(`Imagen 3.0 API call failed: ${error.message}`);
+      throw new Error(`Imagen 3.0 generation failed: ${error.message}`);
+    }
+
+    const predictions = response.predictions;
+    
+    if (predictions.length === 0) {
+      throw new Error(
+        'No image was generated. Check the request parameters and prompt.'
+      );
+    }
+
+    // Return the first prediction
+    const prediction = predictions[0];
+    const imageBuffer = Buffer.from(
+      prediction.structValue.fields.bytesBase64Encoded.stringValue,
+      'base64'
+    );
+
+    return {
+      imageBuffer: imageBuffer,
+      mimeType: 'image/png', // Imagen 3.0 returns PNG format
+      textResponse: undefined, // Imagen 3.0 doesn't return text response
+      finishReason: 'STOP',
+    };
   }
 
   /**
