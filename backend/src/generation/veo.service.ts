@@ -106,8 +106,8 @@ export class VeoService {
     while (Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, 10_000));
 
-      // Veo requires polling via fetchPredictOperation (POST with operationName in body).
-      // The generic GET /v1/{operationName} endpoint returns 404 for Veo UUID-based operation IDs.
+      // Veo requires fetchPredictOperation (POST) — the generic GET /v1/{operationName}
+      // returns 404 because Veo operation IDs are UUIDs, not numeric Longs.
       const pollRes = await fetch(
         `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/veo-3.1-fast-generate-preview:fetchPredictOperation`,
         {
@@ -129,7 +129,7 @@ export class VeoService {
       let pollData;
       try {
         pollData = await pollRes.json();
-        this.logger.log(`Polling response: ${JSON.stringify(pollData)}`);
+        // this.logger.log(`Polling response: ${JSON.stringify(pollData)}`);
       } catch (pollJsonError) {
         const pollText = await pollRes.text();
         this.logger.error(`Failed to parse polling JSON response: ${pollText.substring(0, 500)}...`);
@@ -139,11 +139,39 @@ export class VeoService {
       }
 
       if (pollData.done) {
-        const prediction = pollData.response?.predictions?.[0]?.video;
-        if (!prediction) throw new Error('No video data in Veo 3 Fast response');
+        // Log the full top-level keys so we can see the real response shape
+        this.logger.log(`pollData top-level keys: ${Object.keys(pollData).join(', ')}`);
+        if (pollData.response) {
+          this.logger.log(`pollData.response keys: ${Object.keys(pollData.response).join(', ')}`);
+        }
 
-        // Veo can return the video either as a GCS URI or inline as base64.
-        // Handle both cases.
+        // fetchPredictOperation wraps the result differently than predictLongRunning.
+        // Try all known locations for the predictions array:
+        //   1. pollData.response.predictions  (standard LRO shape)
+        //   2. pollData.predictions            (flat shape)
+        //   3. pollData.response.videos        (some Veo preview variants)
+        const predictions =
+          pollData.response?.predictions ??
+          pollData.predictions ??
+          pollData.response?.videos ??
+          null;
+
+        this.logger.log(`Predictions found at: ${
+          pollData.response?.predictions ? 'response.predictions' :
+          pollData.predictions ? 'predictions' :
+          pollData.response?.videos ? 'response.videos' : 'NONE'
+        }`);
+
+        if (!predictions || predictions.length === 0) {
+          throw new Error(`No predictions in Veo 3 Fast response. Full response: ${JSON.stringify(pollData).substring(0, 500)}`);
+        }
+
+        const rawPrediction = predictions[0];
+        this.logger.log(`Raw prediction keys: ${Object.keys(rawPrediction).join(', ')}`);
+
+        // Unwrap nested .video if present, otherwise the prediction itself is the video object
+        const prediction = rawPrediction.video ?? rawPrediction;
+
         if (prediction.uri) {
           this.logger.log(`Fetching video from URI: ${prediction.uri}`);
 
@@ -167,7 +195,7 @@ export class VeoService {
           return Buffer.from(prediction.bytesBase64Encoded, 'base64');
 
         } else {
-          throw new Error(`Unexpected video payload shape: ${JSON.stringify(prediction)}`);
+          throw new Error(`Unexpected video payload shape: ${JSON.stringify(rawPrediction).substring(0, 300)}`);
         }
       }
     }
