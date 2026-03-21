@@ -54,6 +54,20 @@ export class PipelineController {
     return this.pipelineService.getState(sessionId);
   }
 
+  @Post(':id/update-prompt')
+  @HttpCode(HttpStatus.OK)
+  async updatePrompt(
+    @Param('id') sessionId: string,
+    @Body('sceneIndex') sceneIndex: number,
+    @Body('type') type: 'image' | 'video',
+    @Body('index') index: number,
+    @Body('prompt') prompt: string,
+  ) {
+    if (!prompt) throw new BadRequestException('prompt is required');
+    await this.pipelineService.updatePrompt(sessionId, sceneIndex, type, index, prompt);
+    return { ok: true };
+  }
+
   @Post(':id/generate-image')
   @HttpCode(HttpStatus.ACCEPTED)
   async generateImage(

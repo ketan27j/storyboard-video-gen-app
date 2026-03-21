@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react';
 import { VideoData, SceneData } from '../../types/pipeline.types';
-import { useGenerateVideo } from '../../hooks/usePipeline';
+import { useGenerateVideo, useUpdatePrompt } from '../../hooks/usePipeline';
 
 interface VideoPromptCardProps {
   video: VideoData;
@@ -10,7 +11,19 @@ interface VideoPromptCardProps {
 
 export function VideoPromptCard({ video, scene, sceneIndex, videoIndex }: VideoPromptCardProps) {
   const generateVideo = useGenerateVideo();
+  const updatePrompt = useUpdatePrompt();
+  const [localPrompt, setLocalPrompt] = useState(video.optimizedPrompt || video.rawPrompt);
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+  useEffect(() => {
+    setLocalPrompt(video.optimizedPrompt || video.rawPrompt);
+  }, [video.optimizedPrompt, video.rawPrompt]);
+
+  const handleBlur = () => {
+    if (localPrompt !== (video.optimizedPrompt || video.rawPrompt)) {
+      updatePrompt.mutate({ sceneIndex, type: 'video', index: videoIndex, prompt: localPrompt });
+    }
+  };
 
   // Check if the referenced source image is ready
   const sourceImageReady = scene.imageSequence.some(
@@ -24,7 +37,7 @@ export function VideoPromptCard({ video, scene, sceneIndex, videoIndex }: VideoP
     generateVideo.mutate({
       sceneIndex,
       videoIndex,
-      prompt: video.optimizedPrompt || video.rawPrompt,
+      prompt: localPrompt,
       imagePath,
     });
   };
@@ -52,18 +65,16 @@ export function VideoPromptCard({ video, scene, sceneIndex, videoIndex }: VideoP
       </div>
 
       <div className="px-4 py-3 space-y-2">
-        {video.rawPrompt && (
-          <div>
-            <p className="text-xs text-stone-500 font-mono mb-1">RAW PROMPT</p>
-            <p className="text-xs font-mono text-stone-400 leading-relaxed">{video.rawPrompt}</p>
-          </div>
-        )}
-        {video.optimizedPrompt && video.optimizedPrompt !== video.rawPrompt && (
-          <div className="border-l-2 border-cyan-600/50 pl-3">
-            <p className="text-xs text-cyan-400/70 font-mono mb-1">CAMERA OPTIMIZED</p>
-            <p className="text-xs font-mono text-cyan-300/80 leading-relaxed">{video.optimizedPrompt}</p>
-          </div>
-        )}
+        <div>
+          <p className="text-xs text-stone-500 font-mono mb-1">PROMPT</p>
+          <textarea
+            value={localPrompt}
+            onChange={(e) => setLocalPrompt(e.target.value)}
+            onBlur={handleBlur}
+            className="w-full text-xs font-mono text-cyan-300/80 leading-relaxed bg-stone-900/50 border border-stone-700/50 rounded-lg p-2 resize-y focus:outline-none focus:border-cyan-500/50"
+            rows={3}
+          />
+        </div>
       </div>
 
       {/* Video player */}

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ImageData } from '../../types/pipeline.types';
-import { useGenerateImage } from '../../hooks/usePipeline';
+import { useGenerateImage, useUpdatePrompt } from '../../hooks/usePipeline';
 
 interface ImagePromptCardProps {
   image: ImageData;
@@ -10,11 +10,23 @@ interface ImagePromptCardProps {
 
 export function ImagePromptCard({ image, sceneIndex, imageIndex }: ImagePromptCardProps) {
   const generateImage = useGenerateImage();
+  const updatePrompt = useUpdatePrompt();
   const [expanded, setExpanded] = useState(false);
+  const [localPrompt, setLocalPrompt] = useState(image.prompt);
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+  useEffect(() => {
+    setLocalPrompt(image.prompt);
+  }, [image.prompt]);
 
   const handleGenerate = () => {
     generateImage.mutate({ sceneIndex, imageIndex, prompt: image.prompt });
+  };
+
+  const handleBlur = () => {
+    if (localPrompt !== image.prompt) {
+      updatePrompt.mutate({ sceneIndex, type: 'image', index: imageIndex, prompt: localPrompt });
+    }
   };
 
   const imgSrc = image.generatedUrl
@@ -42,7 +54,13 @@ export function ImagePromptCard({ image, sceneIndex, imageIndex }: ImagePromptCa
 
       {/* Prompt */}
       <div className="px-4 py-3">
-        <p className="text-xs font-mono text-stone-400 leading-relaxed">{image.prompt}</p>
+        <textarea
+          value={localPrompt}
+          onChange={(e) => setLocalPrompt(e.target.value)}
+          onBlur={handleBlur}
+          className="w-full text-xs font-mono text-stone-400 leading-relaxed bg-stone-900/50 border border-stone-700/50 rounded-lg p-2 resize-y focus:outline-none focus:border-amber-500/50"
+          rows={3}
+        />
       </div>
 
       {/* Generated image */}

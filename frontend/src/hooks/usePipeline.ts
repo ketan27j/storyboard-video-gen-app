@@ -62,6 +62,27 @@ export function useApproveScene() {
   });
 }
 
+export function useUpdatePrompt() {
+  const { sessionId, updateImageStatus, updateVideoStatus } = usePipelineStore();
+
+  return useMutation({
+    mutationFn: ({
+      sceneIndex, type, index, prompt,
+    }: { sceneIndex: number; type: 'image' | 'video'; index: number; prompt: string }) => {
+      // Optimistically update frontend store
+      if (type === 'image') {
+        updateImageStatus(sceneIndex, index, { prompt });
+      } else {
+        updateVideoStatus(sceneIndex, index, { rawPrompt: prompt });
+      }
+      return apiFetch(`/api/pipeline/${sessionId}/update-prompt`, {
+        method: 'POST',
+        body: JSON.stringify({ sceneIndex, type, index, prompt }),
+      });
+    },
+  });
+}
+
 export function useGenerateImage() {
   const { sessionId, updateImageStatus } = usePipelineStore();
 

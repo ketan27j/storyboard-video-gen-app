@@ -88,6 +88,36 @@ export class PipelineService {
     });
   }
 
+  async updatePrompt(sessionId: string, sceneIndex: number, type: 'image' | 'video', index: number, prompt: string): Promise<void> {
+    const graph = getPipelineGraph();
+    const config = { configurable: { thread_id: sessionId } };
+    
+    const currentState = await graph.getState(config);
+    if (!currentState?.values?.scenes) return;
+
+    const scenes = [...currentState.values.scenes];
+    if (!scenes[sceneIndex]) return;
+
+    const scene = { ...scenes[sceneIndex] };
+
+    if (type === 'image') {
+      const seq = [...(scene.imageSequence || [])];
+      if (seq[index]) {
+        seq[index] = { ...seq[index], prompt };
+      }
+      scene.imageSequence = seq;
+    } else {
+      const seq = [...(scene.videoMotionPrompts || [])];
+      if (seq[index]) {
+        seq[index] = { ...seq[index], rawPrompt: prompt };
+      }
+      scene.videoMotionPrompts = seq;
+    }
+
+    scenes[sceneIndex] = scene;
+    await graph.updateState(config, { scenes });
+  }
+
   async getState(sessionId: string): Promise<any> {
     const graph = getPipelineGraph();
     const config = { configurable: { thread_id: sessionId } };

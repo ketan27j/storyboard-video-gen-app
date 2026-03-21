@@ -20,9 +20,9 @@ export function StoryPlanReview() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-8">
         {/* Story Snapshot */}
-        <div className="lg:col-span-2 border border-stone-700/50 rounded-2xl p-5 bg-stone-900/30">
+        <div className="border border-stone-700/50 rounded-2xl p-5 bg-stone-900/30">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-base">📖</span>
             <h3 className="text-sm font-bold text-stone-300 tracking-wide">STORY SNAPSHOT</h3>
@@ -122,7 +122,7 @@ export function StoryPlanReview() {
         <button
           onClick={() => approvePlan.mutate(true)}
           disabled={isLoading}
-          className="sm:w-48 py-3.5 rounded-xl border border-stone-600 hover:border-stone-400 text-stone-400 hover:text-stone-200 font-bold text-sm tracking-widest uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="sm:w-48 py-3.5 rounded-xl bg-black border border-stone-600 hover:border-stone-400 text-stone-400 hover:text-stone-200 font-bold text-sm tracking-widest uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           🔄 REGENERATE
         </button>
