@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { GoogleAuth } from 'google-auth-library';
 
 @Injectable()
 export class VeoService {
@@ -16,7 +17,6 @@ export class VeoService {
       throw new Error('GOOGLE_PROJECT_ID not configured for Veo 3 Fast.');
     }
 
-    const { GoogleAuth } = await import('google-auth-library');
     const auth = new GoogleAuth({
       scopes: ['https://www.googleapis.com/auth/cloud-platform'],
     });
@@ -60,8 +60,11 @@ export class VeoService {
         instances: [instance],
         parameters: {
           durationSeconds: 8,
-          aspectRatio: '16:9',
+          aspectRatio: '9:16',
           sampleCount: 1,
+          resolution:'720p',
+          generateAudio:false,
+          personGeneration:'allow_all'
         },
       }),
     });
@@ -103,9 +106,18 @@ export class VeoService {
     while (Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, 10_000));
 
+      // Veo requires polling via fetchPredictOperation (POST with operationName in body).
+      // The generic GET /v1/{operationName} endpoint returns 404 for Veo UUID-based operation IDs.
       const pollRes = await fetch(
-        `https://${location}-aiplatform.googleapis.com/v1/${operationName}`,
-        { headers: { Authorization: `Bearer ${token}` } },
+        `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/veo-3.1-fast-generate-preview:fetchPredictOperation`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ operationName }),
+        },
       );
       
       if (!pollRes.ok) {
@@ -127,27 +139,36 @@ export class VeoService {
       }
 
       if (pollData.done) {
-        const videoUri = pollData.response?.predictions?.[0]?.video?.uri;
-        if (!videoUri) throw new Error('No video URI in Veo 3 Fast response');
+        const prediction = pollData.response?.predictions?.[0]?.video;
+        if (!prediction) throw new Error('No video data in Veo 3 Fast response');
 
-        this.logger.log(`Fetching video from URI: ${videoUri}`);
-        
-        const videoRes = await fetch(videoUri, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        
-        this.logger.log(`Video fetch response status: ${videoRes.status} ${videoRes.statusText}`);
-        
-        if (!videoRes.ok) {
-          const videoErr = await videoRes.text();
-          this.logger.error(`Video fetch failed with status ${videoRes.status}: ${videoErr}`);
-          throw new Error(`Veo 3 Fast video fetch error: ${videoErr}`);
+        // Veo can return the video either as a GCS URI or inline as base64.
+        // Handle both cases.
+        if (prediction.uri) {
+          this.logger.log(`Fetching video from URI: ${prediction.uri}`);
+
+          const videoRes = await fetch(prediction.uri, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          this.logger.log(`Video fetch response status: ${videoRes.status} ${videoRes.statusText}`);
+
+          if (!videoRes.ok) {
+            const videoErr = await videoRes.text();
+            this.logger.error(`Video fetch failed with status ${videoRes.status}: ${videoErr}`);
+            throw new Error(`Veo 3 Fast video fetch error: ${videoErr}`);
+          }
+
+          this.logger.log(`Video fetch successful, content-length: ${videoRes.headers.get('content-length')} bytes`);
+          return Buffer.from(await videoRes.arrayBuffer());
+
+        } else if (prediction.bytesBase64Encoded) {
+          this.logger.log(`Video returned inline as base64 (length: ${prediction.bytesBase64Encoded.length})`);
+          return Buffer.from(prediction.bytesBase64Encoded, 'base64');
+
+        } else {
+          throw new Error(`Unexpected video payload shape: ${JSON.stringify(prediction)}`);
         }
-        
-        this.logger.log(`Video fetch successful, content type: ${videoRes.headers.get('content-type')}`);
-        this.logger.log(`Video content length: ${videoRes.headers.get('content-length')} bytes`);
-        
-        return Buffer.from(await videoRes.arrayBuffer());
       }
     }
 
