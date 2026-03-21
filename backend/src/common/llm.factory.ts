@@ -2,8 +2,11 @@ import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatOpenAI } from '@langchain/openai';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { ChatOpenRouter } from '@langchain/openrouter';
+import { ChatVertexAI } from '@langchain/google-vertexai';
+import { GoogleAuth } from 'google-auth-library';
+import { GoogleGenAI } from '@google/genai';
 
-export function createLLM() {
+export async function createLLM() {
   const provider = process.env.LLM_PROVIDER || 'anthropic';
   const model = process.env.LLM_MODEL;
 
@@ -17,11 +20,16 @@ export function createLLM() {
       });
 
     case 'gemini':
-      return new ChatGoogleGenerativeAI({
-        model: model || 'gemini-2.0-flash',
+      // Use ChatVertexAI for direct Vertex AI integration
+      return new ChatVertexAI({
+        model: model || 'gemini-2.5-flash-lite',
+        location: process.env.GOOGLE_LOCATION || 'us-central1',
         temperature: 0.7,
-        apiKey: process.env.GOOGLE_API_KEY,
+        maxOutputTokens: 1024,
         streaming: true,
+        authOptions: {
+          projectId: process.env.GOOGLE_PROJECT_ID,
+        },
       });
 
     case 'openrouter':

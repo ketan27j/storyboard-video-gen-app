@@ -120,7 +120,7 @@ export async function generateScenesNode(
   state: PipelineState,
   config?: any,
 ): Promise<Partial<PipelineState>> {
-  const llm = createLLM();
+  const llm = await createLLM();
   const promptTemplate = loadPrompt('char_scene_gen.txt');
 
   const prompt = promptTemplate.includes('{movieIdea}')

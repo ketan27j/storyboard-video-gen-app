@@ -167,7 +167,7 @@ export class ImagenService implements OnModuleInit {
     }
 
     // Configure the parent resource
-    const endpoint = `projects/${projectId}/locations/${location}/publishers/google/models/imagen-3.0-generate-001`;
+    const endpoint = `projects/${projectId}/locations/${location}/publishers/google/models/imagen-3.0-generate-002`;
 
     const promptText = {
       prompt: prompt, // The text prompt describing what you want to see
@@ -177,9 +177,9 @@ export class ImagenService implements OnModuleInit {
 
     const parameter = {
       sampleCount: config?.candidateCount || 1,
-      aspectRatio: config?.aspectRatio || '1:1',
+      aspectRatio: config?.aspectRatio || '9:16',
       safetyFilterLevel: 'block_some',
-      personGeneration: 'allow_adult',
+      personGeneration: 'allow_all',
     };
     const parameters = helpers.toValue(parameter);
     console.log('calling gemini api')

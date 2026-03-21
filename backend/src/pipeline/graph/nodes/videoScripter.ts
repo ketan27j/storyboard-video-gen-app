@@ -137,7 +137,7 @@ function extractSection(text: string, startMarker: string, endMarker: string | n
 export async function processSceneNode(
   state: PipelineState,
 ): Promise<Partial<PipelineState>> {
-  const llm = createLLM();
+  const llm = await createLLM();
   const promptTemplate = loadPrompt();
   const sceneIdx = state.currentSceneIndex;
   const scene = state.scenes[sceneIdx];

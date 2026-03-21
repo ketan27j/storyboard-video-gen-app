@@ -26,7 +26,7 @@ function loadCameraRef(): string {
 export async function optimizeCameraNode(
   state: PipelineState,
 ): Promise<Partial<PipelineState>> {
-  const llm = createLLM();
+  const llm = await createLLM();
   const cameraRef = loadCameraRef();
   const sceneIdx = state.currentSceneIndex;
   const scene = state.scenes[sceneIdx];
