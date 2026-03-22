@@ -18,6 +18,7 @@ export class VideoProcessor {
     imagePath?: string;
   }>) {
     this.logger.log(`Processing video job ${job.id} for session ${job.data.sessionId}`);
+    this.logger.log(`Job data: sessionId=${job.data.sessionId}, sceneIndex=${job.data.sceneIndex}, videoIndex=${job.data.videoIndex}, prompt="${job.data.prompt}", imagePath="${job.data.imagePath}"`);
     await this.generationService.processVideoJob(job.data);
     this.logger.log(`Video job ${job.id} complete`);
   }

@@ -90,7 +90,7 @@ export class GenerationService {
         buffer = await this.generatePlaceholderImage(prompt);
       }
 
-      const url = await this.storageService.saveImage(buffer, sceneIndex, imageIndex);
+      const url = await this.storageService.saveImage(buffer, sessionId, sceneIndex, imageIndex);
       this.gateway.emitImageProgress(sessionId, sceneIndex, imageIndex, 'done', url);
       this.logger.log(`Image done: ${url}`);
     } catch (err) {
@@ -123,7 +123,7 @@ export class GenerationService {
         buffer = Buffer.from('mock-video-data');
       }
 
-      const url = await this.storageService.saveVideo(buffer, sceneIndex, videoIndex);
+      const url = await this.storageService.saveVideo(buffer, sessionId, sceneIndex, videoIndex);
       this.gateway.emitVideoProgress(sessionId, sceneIndex, videoIndex, 'done', url);
       this.logger.log(`Video done: ${url}`);
     } catch (err) {
