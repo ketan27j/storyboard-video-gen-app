@@ -86,6 +86,7 @@ function parseSceneOutput(raw: string): {
       charactersPresent,
       characterDescriptions,
       characterImagePrompts: [],
+      characterReferenceImages: {},
       imageSequence: [],
       videoMotionPrompts: [],
       approved: false,

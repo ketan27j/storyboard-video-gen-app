@@ -82,6 +82,41 @@ export class PipelineController {
     return { ok: true, queued: true };
   }
 
+  @Post(':id/upload-character-image')
+  @HttpCode(HttpStatus.OK)
+  async uploadCharacterImage(
+    @Param('id') sessionId: string,
+    @Body('characterName') characterName: string,
+    @Body('imageData') imageData: string,
+  ) {
+    if (!characterName || !imageData) {
+      throw new BadRequestException('characterName and imageData are required');
+    }
+    
+    // Save character reference image to session folder
+    const buffer = Buffer.from(imageData.split(',')[1], 'base64');
+    const filename = `${characterName.toLowerCase().replace(/\s+/g, '_')}_reference.png`;
+    const storyDir = `output/images/${sessionId}/characters`;
+    
+    // Create characters directory if it doesn't exist
+    const fs = require('fs');
+    const path = require('path');
+    const fullPath = path.join(process.env.OUTPUT_DIR || './output', 'images', sessionId, 'characters');
+    fs.mkdirSync(fullPath, { recursive: true });
+    
+    const filepath = path.join(fullPath, filename);
+    fs.writeFileSync(filepath, buffer);
+    
+    // Update pipeline state to track character reference image
+    await this.pipelineService.uploadCharacterImage(sessionId, characterName, `${storyDir}/${filename}`);
+    
+    return { 
+      ok: true, 
+      url: `${storyDir}/${filename}`,
+      characterName 
+    };
+  }
+
   @Post(':id/generate-video')
   @HttpCode(HttpStatus.ACCEPTED)
   async generateVideo(

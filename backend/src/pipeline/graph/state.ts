@@ -28,6 +28,7 @@ export interface SceneData {
   charactersPresent: string[];
   characterDescriptions: Record<string, string>;
   characterImagePrompts: string[];
+  characterReferenceImages: Record<string, string>; // character name -> image URL
   imageSequence: ImageData[];
   videoMotionPrompts: VideoData[];
   approved: boolean;
