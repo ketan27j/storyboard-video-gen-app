@@ -8,7 +8,7 @@ export class StorageService {
   private readonly outputDir: string;
 
   constructor() {
-    this.outputDir = path.resolve(process.env.OUTPUT_DIR || './output');
+    this.outputDir = process.env.OUTPUT_DIR || path.resolve(__dirname, '../../../output');
     this.ensureDirectories();
   }
 

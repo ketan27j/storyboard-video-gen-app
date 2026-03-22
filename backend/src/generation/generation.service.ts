@@ -73,11 +73,20 @@ export class GenerationService {
       let buffer: Buffer;
 
       if (this.imageProvider === 'imagen') {
-        const refInputs = referenceImages?.map((b64) => ({ base64: b64 })) ?? undefined;
+        // Get character reference images for this scene
+        const characterRefs = await this.getCharacterReferenceImages(sessionId, sceneIndex);
+        const allReferenceImages = [...(referenceImages || []), ...characterRefs];
+        
+        const refInputs = allReferenceImages?.map((b64) => ({ base64: b64 })) ?? undefined;
         const result = await this.imagenService.generateImage(prompt, refInputs);
         buffer = result.imageBuffer;
       } else if (this.imageProvider === 'imagen3') {
-        const result = await this.imagenService.generateImageImagen3(prompt);
+        // Get character reference images for this scene
+        const characterRefs = await this.getCharacterReferenceImages(sessionId, sceneIndex);
+        const allReferenceImages = [...(referenceImages || []), ...characterRefs];
+        
+        const refInputs = allReferenceImages?.map((b64) => ({ base64: b64 })) ?? undefined;
+        const result = await this.imagenService.generateImageImagen3(prompt, refInputs);
         buffer = result.imageBuffer;
       } else if (this.imageProvider === 'leonardo') {
         buffer = await this.grokService.generateImage(prompt);
@@ -130,6 +139,40 @@ export class GenerationService {
       this.logger.error(`Video generation failed: ${err.message}`, err.stack);
       this.gateway.emitVideoProgress(sessionId, sceneIndex, videoIndex, 'error');
       throw err;
+    }
+  }
+
+  private async getCharacterReferenceImages(sessionId: string, sceneIndex: number): Promise<string[]> {
+    try {
+      const characterRefs: string[] = [];
+      
+      // Get the scene data to find which characters are present
+      const outputDir = this.storageService.getOutputDir();
+      const scenePath = `${outputDir}/images/${sessionId}/scenes/scene_${String(sceneIndex + 1).padStart(2, '0')}.json`;
+      
+      if (require('fs').existsSync(scenePath)) {
+        const sceneData = JSON.parse(require('fs').readFileSync(scenePath, 'utf-8'));
+        const charactersPresent = sceneData.charactersPresent || [];
+        
+        // For each character in the scene, try to load their reference image
+        for (const characterName of charactersPresent) {
+          const characterImagePath = `${outputDir}/images/${sessionId}/characters/${characterName}_reference.png`;
+          
+          if (require('fs').existsSync(characterImagePath)) {
+            // Convert image to base64 for reference
+            const imageBuffer = require('fs').readFileSync(characterImagePath);
+            const base64Image = imageBuffer.toString('base64');
+            characterRefs.push(base64Image);
+            
+            this.logger.log(`Found character reference image for ${characterName} in scene ${sceneIndex}`);
+          }
+        }
+      }
+      
+      return characterRefs;
+    } catch (error) {
+      this.logger.error(`Failed to get character reference images: ${error.message}`);
+      return [];
     }
   }
 

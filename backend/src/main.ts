@@ -10,6 +10,10 @@ async function bootstrap() {
     logger: ['log', 'error', 'warn', 'debug'],
   });
 
+  // Increase payload size limit for character image uploads
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
   // CORS
   app.enableCors({
     origin: process.env.FRONTEND_URL || 'http://localhost:5173',
