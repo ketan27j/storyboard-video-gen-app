@@ -171,18 +171,26 @@ export class ImagenService implements OnModuleInit {
     // Configure the parent resource
     const endpoint = `projects/${projectId}/locations/${location}/publishers/google/models/imagen-3.0-generate-002`;
 
-    // Build prompt with reference images if provided
-    let finalPrompt = prompt;
+    // Base system prompt for consistent animation style
+    const baseSystemPrompt =
+      'You are a expert AI animation assistant. Generate the images in similar style and character reference';
+    const finalPrompt = `${baseSystemPrompt}\n\n${prompt}`;
+
+    // Build instance with prompt and reference images if provided
+    const promptText: Record<string, unknown> = {
+      prompt: finalPrompt,
+    };
+
     if (referenceImages && referenceImages.length > 0) {
-      // For Imagen 3.0, we need to include reference images in the prompt
-      // This is a simplified approach - in a real implementation, you might need
-      // to use a different API that supports reference images
-      finalPrompt = `${prompt} (use reference images for character consistency)`;
+      promptText.referenceImages = referenceImages.map((img) => ({
+        referenceType: 'REFERENCE_TYPE_SUBJECT',
+        referenceImage: {
+          bytesBase64Encoded: img.base64,
+          mimeType: img.mimeType ?? 'image/jpeg',
+        },
+      }));
     }
 
-    const promptText = {
-      prompt: finalPrompt, // The text prompt describing what you want to see
-    };
     const instanceValue = helpers.toValue(promptText);
     const instances = [instanceValue];
 
