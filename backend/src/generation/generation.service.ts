@@ -38,7 +38,7 @@ export class GenerationService {
       backoff: { type: 'exponential', delay: 5000 },
     });
 
-    this.logger.log(`Queued image generation for session ${sessionId}, scene ${sceneIndex}, image ${imageIndex}, prompt ${prompt}`);
+    this.logger.log(`Queued image generation for session ${sessionId}, scene ${sceneIndex}, image ${imageIndex}`);
   }
 
   async queueVideoGeneration(

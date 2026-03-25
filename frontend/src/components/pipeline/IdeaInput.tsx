@@ -3,8 +3,8 @@ import { usePipelineStore } from '../../stores/pipelineStore';
 import { useStartPipeline } from '../../hooks/usePipeline';
 
 const EXAMPLES = [
-  'Mother (around 30s) explaining importance of Gudhi Padava festival in india to her 4 yr daughter in brief. What indian people do during that festival. eg: They mount Gudhi in their home decorated with sari, flowers, garlands, which is symbol of prosperity and new beginning. They prepare special food like Shrikhand puri, puran poli. They have shobha yatra with traditional attire of navvari and feta, dhoti.',
-  'A clever but hungry jackal accidentally falls into a vat of blue dye and emerges looking magical. The jungle animals believe he is a divine creature and crown him king. Drunk on power, the jackal enjoys luxury until one night he howls like a jackal, revealing his true identity.',
+  'Mother (Sajiri)(around 30s) explaining importance of Gudhi Padava festival in india to her 4 yr daughter (Chinu) in brief. What indian people do during that festival. eg: They mount Gudhi in their home decorated with sari, flowers, garlands, which is symbol of prosperity and new beginning. They prepare special food like Shrikhand puri, puran poli. They have shobha yatra with traditional attire of navvari and feta, dhoti.',
+  'Mother (Sajiri)(around 30s) explaining importance of Ram Navami festival in india to her 4 yr daughter (Chinu) in brief. What indian people do during that festival. eg: Visit temples dedicated to Lord Rama, Do fasting or eat simple satvik food like fruits, sabudana dishes, or kheer and Temples decorate idols and sometimes re-enact scenes from the Ramayana',
   'In the court of wise Emperor Akbar, ministers argue over a strange mystery troubling the kingdom. The emperor turns to his clever advisor Birbal, who uses wit and simple logic to uncover the truth. Through humor and intelligence, Birbal teaches everyone that wisdom is greater than power.',
 ];
 

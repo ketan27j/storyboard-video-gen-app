@@ -169,11 +169,14 @@ export class ImagenService implements OnModuleInit {
     }
 
     // Configure the parent resource
-    const endpoint = `projects/${projectId}/locations/${location}/publishers/google/models/imagen-3.0-generate-002`;
+    const endpoint = `projects/${projectId}/locations/${location}/publishers/google/models/imagen-3.0-capability-001`;
 
     // Base system prompt for consistent animation style
     const baseSystemPrompt =
-      'You are a expert AI animation assistant. Generate the images in similar style and character reference';
+      'You are a expert AI animation assistant. ' +
+      'Your job is to turn a given prompt to beautiful image keeping every single instruction in image ' +
+      'Generate the images keeping character consitency using image name and name in prompt ' +
+      '';
     const finalPrompt = `${baseSystemPrompt}\n\n${prompt}`;
 
     // Build instance with prompt and reference images if provided
@@ -201,7 +204,7 @@ export class ImagenService implements OnModuleInit {
       personGeneration: 'allow_all',
     };
     const parameters = helpers.toValue(parameter);
-    console.log('calling gemini api')
+    this.logger.log(`Calling gemini api with : ${ finalPrompt }`)
     const request = {
       endpoint,
       instances,
