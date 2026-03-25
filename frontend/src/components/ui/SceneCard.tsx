@@ -1,5 +1,6 @@
 import { SceneData } from '../../types/pipeline.types';
 import { CharacterBadge } from './CharacterBadge';
+import { EditableSceneText } from './EditableSceneText';
 
 interface SceneCardProps {
   scene: SceneData;
@@ -34,9 +35,12 @@ export function SceneCard({ scene, active, style }: SceneCardProps) {
       </div>
 
       {scene.sceneText && (
-        <p className="text-xs text-stone-400 leading-relaxed mb-3">
-          {scene.sceneText}
-        </p>
+        <div className="mb-3">
+          <EditableSceneText
+            sceneIndex={scene.sceneNumber - 1}
+            sceneText={scene.sceneText}
+          />
+        </div>
       )}
 
       {scene.charactersPresent.length > 0 && (

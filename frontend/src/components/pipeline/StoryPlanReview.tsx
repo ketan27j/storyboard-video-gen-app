@@ -1,6 +1,8 @@
 import { usePipelineStore } from '../../stores/pipelineStore';
 import { useApprovePlan } from '../../hooks/usePipeline';
+import { useCharacterEdit } from '../../hooks/useCharacterEdit';
 import { CharacterBadge } from '../ui/CharacterBadge';
+import { EditableCharacter } from '../ui/EditableCharacter';
 import { SceneCard } from '../ui/SceneCard';
 import { useState } from 'react';
 import { useSocket } from '../../hooks/useSocket';
@@ -99,7 +101,10 @@ export function StoryPlanReview() {
                   className="animate-fade-in"
                   style={{ animationDelay: `${i * 100}ms` }}
                 >
-                  <CharacterBadge name={name} description={desc} index={i} />
+                  <EditableCharacter
+                    name={name}
+                    description={desc}
+                  />
                   <div className="mt-2 flex items-center gap-2">
                     <input
                       type="file"
@@ -165,7 +170,7 @@ export function StoryPlanReview() {
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-3 sticky bottom-6">
         <button
-          onClick={() => approvePlan.mutate(false)}
+          onClick={() => approvePlan.mutate()}
           disabled={isLoading || scenes.length === 0}
           className="flex-1 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:bg-stone-800 disabled:text-stone-600 text-black font-black text-sm tracking-widest uppercase transition-all flex items-center justify-center gap-2 disabled:cursor-not-allowed"
         >
@@ -179,7 +184,7 @@ export function StoryPlanReview() {
           )}
         </button>
         <button
-          onClick={() => approvePlan.mutate(true)}
+          onClick={() => approvePlan.mutate()}
           disabled={isLoading}
           className="sm:w-48 py-3.5 rounded-xl bg-black border border-stone-600 hover:border-stone-400 text-stone-400 hover:text-stone-200 font-bold text-sm tracking-widest uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >

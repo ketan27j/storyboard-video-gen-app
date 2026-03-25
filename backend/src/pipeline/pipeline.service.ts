@@ -145,6 +145,49 @@ export class PipelineService {
     await graph.updateState(config, { scenes });
   }
 
+  async updateCharacterDescription(sessionId: string, characterName: string, description: string): Promise<void> {
+    const graph = getPipelineGraph();
+    const config = { configurable: { thread_id: sessionId } };
+    
+    const currentState = await graph.getState(config);
+    if (!currentState?.values?.scenes) return;
+
+    const scenes = [...currentState.values.scenes];
+    
+    // Update all scenes that contain this character
+    for (let i = 0; i < scenes.length; i++) {
+      const scene = scenes[i];
+      if (scene.charactersPresent.includes(characterName.toUpperCase())) {
+        const updatedScene = {
+          ...scene,
+          characterDescriptions: {
+            ...scene.characterDescriptions,
+            [characterName.toUpperCase()]: description
+          }
+        };
+        scenes[i] = updatedScene;
+      }
+    }
+
+    await graph.updateState(config, { scenes });
+  }
+
+  async updateSceneText(sessionId: string, sceneIndex: number, sceneText: string): Promise<void> {
+    const graph = getPipelineGraph();
+    const config = { configurable: { thread_id: sessionId } };
+    
+    const currentState = await graph.getState(config);
+    if (!currentState?.values?.scenes) return;
+
+    const scenes = [...currentState.values.scenes];
+    if (!scenes[sceneIndex]) return;
+
+    const scene = { ...scenes[sceneIndex], sceneText };
+    scenes[sceneIndex] = scene;
+
+    await graph.updateState(config, { scenes });
+  }
+
   async getState(sessionId: string): Promise<any> {
     const graph = getPipelineGraph();
     const config = { configurable: { thread_id: sessionId } };

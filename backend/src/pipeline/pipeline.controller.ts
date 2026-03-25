@@ -68,6 +68,30 @@ export class PipelineController {
     return { ok: true };
   }
 
+  @Post(':id/update-character-description')
+  @HttpCode(HttpStatus.OK)
+  async updateCharacterDescription(
+    @Param('id') sessionId: string,
+    @Body('characterName') characterName: string,
+    @Body('description') description: string,
+  ) {
+    if (!characterName || !description) throw new BadRequestException('characterName and description are required');
+    await this.pipelineService.updateCharacterDescription(sessionId, characterName, description);
+    return { ok: true };
+  }
+
+  @Post(':id/update-scene-text')
+  @HttpCode(HttpStatus.OK)
+  async updateSceneText(
+    @Param('id') sessionId: string,
+    @Body('sceneIndex') sceneIndex: number,
+    @Body('sceneText') sceneText: string,
+  ) {
+    if (sceneIndex < 0 || !sceneText) throw new BadRequestException('sceneIndex and sceneText are required');
+    await this.pipelineService.updateSceneText(sessionId, sceneIndex, sceneText);
+    return { ok: true };
+  }
+
   @Post(':id/generate-image')
   @HttpCode(HttpStatus.ACCEPTED)
   async generateImage(
