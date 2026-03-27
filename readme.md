@@ -1,6 +1,6 @@
 # 🎬 AI Storyboard Web App
 
-A full-stack web application that transforms a simple movie idea into a complete AI-generated storyboard — with scene breakdowns, character definitions, image generation, and video creation — all through an intuitive, real-time UI with human-in-the-loop control at every step.
+A full-stack web application that transforms a simple movie idea into a complete AI-generated storyboard — with scene breakdowns, character definitions, image generation, and video creation, all through an intuitive, real-time UI with human-in-the-loop control at every step.
 
 ---
 
