@@ -9,7 +9,7 @@ export interface ReferenceImageInput {
   base64: string;
   /** MIME type of the image. Defaults to 'image/jpeg'. */
   mimeType?: 'image/jpeg' | 'image/png' | 'image/webp';
-    /** Subject type for subject image reference */
+  /** Subject type for subject image reference */
   subjectType?: 'SUBJECT_TYPE_OBJECT' | 'SUBJECT_TYPE_PERSON' | 'SUBJECT_TYPE_ANIMAL' | 'SUBJECT_TYPE_OTHER';
   /** Image description of the reference image */
   imageDescription?: string;
@@ -127,13 +127,13 @@ export class ImagenService implements OnModuleInit {
   ): Promise<GenerateImageResult> {
     // Add retry logic with exponential backoff
     let lastError: Error;
-    
+
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
         return await this.generateImageRequest(prompt, referenceImages, config);
       } catch (error) {
         lastError = error as Error;
-        
+
         if (attempt === this.maxRetries) {
           this.logger.error(`Image generation failed after ${this.maxRetries} attempts: ${error.message}`);
           throw error;
@@ -141,114 +141,12 @@ export class ImagenService implements OnModuleInit {
 
         const delay = this.retryDelay * Math.pow(2, attempt - 1);
         this.logger.warn(`Image generation attempt ${attempt} failed, retrying in ${delay}ms: ${error.message}`);
-        
+
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
 
     throw lastError!;
-  }
-
-  /**
-   * Generate an image using Imagen 3.0 on Vertex AI.
-   *
-   * @param prompt          Text prompt describing the desired output image.
-   * @param referenceImages Up to 3 reference images as base64 strings for consistent generation.
-   * @param config          Generation configuration including aspect ratio, candidate count, and safety settings.
-   * @returns               Generated image buffer, MIME type, optional text response, and finish reason.
-   */
-  async generateImageImagen3(
-    prompt: string,
-    referenceImages?: ReferenceImageInput[],
-    config?: ImageGenerationConfig,
-  ): Promise<GenerateImageResult> {
-    const projectId = process.env.GOOGLE_PROJECT_ID;
-    const location = process.env.GOOGLE_LOCATION || 'us-central1';
-
-    if (!projectId) {
-      throw new Error(
-        'GOOGLE_PROJECT_ID is not configured. ' +
-          'Set IMAGE_GEN_PROVIDER=manual to skip real generation.',
-      );
-    }
-
-    // Configure the parent resource
-    const endpoint = `projects/${projectId}/locations/${location}/publishers/google/models/imagen-3.0-capability-001`;
-    // Base system prompt for consistent animation style
-    const baseSystemPrompt = ''
-    'You are a expert AI animation assistant. ' +
-    'Your job is to turn a given prompt to beautiful image keeping every single instruction in image ';
-    
-    let finalPrompt = `${baseSystemPrompt}\n\n${prompt}`;
-    // Build instance with prompt — must be a protobuf Value object
-    const promptText: Record<string, unknown> = {
-      prompt: finalPrompt, // The text prompt describing what you want to see
-    };
-    // Build prompt with reference images if provided
-    if (referenceImages && referenceImages.length > 0) {
-      // For Imagen 3.0, we need to include reference images in the prompt
-        let REFERENCE_ID = 0;
-        promptText.referenceImages = referenceImages.map((img) => ({
-          referenceType: 'REFERENCE_TYPE_SUBJECT',
-          referenceId: REFERENCE_ID++,
-          referenceImage: {
-            bytesBase64Encoded: img.base64,
-          },
-          subjectImageConfig: {
-            subjectType: img.subjectType || 'SUBJECT_TYPE_PERSON',
-            imageDescription: img.imageDescription || '',
-          },
-        }));
-      promptText.prompt = `${finalPrompt} (Generate the images keeping character consitency using image name and referenceId in prompt)`;
-    }
-
-    const instanceValue = helpers.toValue(promptText);
-    const instances = [instanceValue];
-
-    const parameter = {
-      sampleCount: config?.candidateCount || 1,
-      aspectRatio: config?.aspectRatio || '9:16',
-      safetyFilterLevel: 'block_some',
-      personGeneration: 'allow_all',
-    };
-    const parameters = helpers.toValue(parameter);
-    console.log('calling gemini api')
-    const request = {
-      endpoint,
-      instances,
-      parameters,
-    };
-
-    // Predict request
-    let response;
-    try {
-      [response] = await this.predictionServiceClient.predict(request);
-    } catch (error) {
-      this.logger.error(`Imagen 3.0 API call failed: ${error.message}`);
-      throw new Error(`Imagen 3.0 generation failed: ${error.message}`);
-    }
-
-    const predictions = response.predictions;
-    
-    if (predictions.length === 0) {
-      throw new Error(
-        'No image was generated. Check the request parameters and prompt.'
-      );
-    }
-
-    // Return the first prediction
-    const prediction = predictions[0];
-    const imageBuffer = Buffer.from(
-      prediction.structValue.fields.bytesBase64Encoded.stringValue,
-      'base64'
-    );
-
-    return {
-      imageBuffer: imageBuffer,
-      mimeType: 'image/png', // Imagen 3.0 returns PNG format
-      textResponse: undefined, // Imagen 3.0 doesn't return text response
-      finishReason: 'STOP',
-    };
   }
 
   /**
@@ -264,18 +162,20 @@ export class ImagenService implements OnModuleInit {
     if (!projectId) {
       throw new Error(
         'GOOGLE_PROJECT_ID is not configured. ' +
-          'Set IMAGE_GEN_PROVIDER=manual to skip real generation.',
+        'Set IMAGE_GEN_PROVIDER=manual to skip real generation.',
       );
     }
-
+    const baseSystemPrompt = 'You are a expert AI animation assistant. ' +
+    'Your job is to turn a given prompt to beautiful image keeping every single instruction in image ';
+    
     // ------------------------------------------------------------------
     // Validate reference images
     // ------------------------------------------------------------------
     if (referenceImages && referenceImages.length > ImagenService.MAX_REFERENCE_IMAGES) {
       throw new Error(
         `Gemini 2.5 Flash Image supports at most ` +
-          `${ImagenService.MAX_REFERENCE_IMAGES} reference images, ` +
-          `but ${referenceImages.length} were provided.`,
+        `${ImagenService.MAX_REFERENCE_IMAGES} reference images, ` +
+        `but ${referenceImages.length} were provided.`,
       );
     }
 
@@ -285,7 +185,7 @@ export class ImagenService implements OnModuleInit {
     if (config?.aspectRatio && !ImagenService.SUPPORTED_ASPECT_RATIOS.includes(config.aspectRatio)) {
       throw new Error(
         `Unsupported aspect ratio: ${config.aspectRatio}. ` +
-          `Supported ratios: ${ImagenService.SUPPORTED_ASPECT_RATIOS.join(', ')}`
+        `Supported ratios: ${ImagenService.SUPPORTED_ASPECT_RATIOS.join(', ')}`
       );
     }
 
@@ -312,13 +212,13 @@ export class ImagenService implements OnModuleInit {
         };
       }
     }) ?? [];
-
+    const finalPrompt = baseSystemPrompt + prompt;
     const contents = [
       {
         role: 'user',
         parts: [
           ...imageParts,
-          { text: prompt },
+          { text: finalPrompt },
         ],
       },
     ];
@@ -348,8 +248,8 @@ export class ImagenService implements OnModuleInit {
     // Request using Google Gen AI SDK
     // ------------------------------------------------------------------
     this.logger.debug(
-      `Calling Gemini 2.5 Flash Image with prompt="${prompt}" ` +
-        `and ${referenceImages?.length ?? 0} reference image(s).`,
+      `Calling Gemini 2.5 Flash Image with prompt="${finalPrompt}" ` +
+      `and ${referenceImages?.length ?? 0} reference image(s).`,
     );
 
     const response = await this.genaiClient.models.generateContent({
@@ -365,7 +265,7 @@ export class ImagenService implements OnModuleInit {
     // We pick the first image part returned.
     // ------------------------------------------------------------------
     const candidate = response.candidates?.[0];
-    
+
     if (!candidate) {
       throw new Error('No candidates returned from Gemini 2.5 Flash Image.');
     }

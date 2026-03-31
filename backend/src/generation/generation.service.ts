@@ -86,7 +86,7 @@ export class GenerationService {
         const allReferenceImages = [...(referenceImages || []), ...characterRefs];
         
         const refInputs = allReferenceImages?.map((b64) => ({ base64: b64 })) ?? undefined;
-        const result = await this.imagenService.generateImageImagen3(prompt, refInputs);
+        const result = await this.imagenService.generateImage(prompt, refInputs);
         buffer = result.imageBuffer;
       } else if (this.imageProvider === 'leonardo') {
         buffer = await this.grokService.generateImage(prompt);
