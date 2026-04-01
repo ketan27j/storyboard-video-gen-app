@@ -165,8 +165,12 @@ export class ImagenService implements OnModuleInit {
         'Set IMAGE_GEN_PROVIDER=manual to skip real generation.',
       );
     }
-    const baseSystemPrompt = 'You are a expert AI animation assistant. ' +
-    'Your job is to turn a given prompt to beautiful image keeping every single instruction in image ';
+    const baseSystemPrompt =
+      'You are an expert AI animation and illustration assistant. ' +
+      'Your primary job is to generate images that EXACTLY match the visual and animation style shown in the reference images provided. ' +
+      'You must replicate the art style, color palette, line weight, shading technique, and overall aesthetic of the reference images precisely. ' +
+      'Do NOT generate photorealistic or real-world images unless the reference images are photorealistic. ' +
+      'Always follow every instruction in the user prompt while preserving the reference style faithfully.';
     
     // ------------------------------------------------------------------
     // Validate reference images
@@ -189,18 +193,24 @@ export class ImagenService implements OnModuleInit {
       );
     }
 
-    // If config?.aspectRatio then set it to 9:16 default for vertical image generation.
-    if (config?.aspectRatio) {
+    // Default to 9:16 aspect ratio if none is provided (vertical image generation).
+    if (config && !config.aspectRatio) {
       config.aspectRatio = '9:16';
+    } else if (!config) {
+      config = { aspectRatio: '9:16' };
     }
 
     // ------------------------------------------------------------------
     // Build the `contents` array (Gemini multimodal message format).
     // Support both local base64 images and cloud storage URIs.
+    // When reference images are provided we insert an explicit preamble
+    // text BEFORE them so the model knows their role (style reference),
+    // then add the actual generation instruction after.
     // ------------------------------------------------------------------
+    const hasReferenceImages = referenceImages && referenceImages.length > 0;
+
     const imageParts = referenceImages?.map((img) => {
       if ('uri' in img) {
-        // Cloud storage URI
         return {
           fileData: {
             mimeType: img.mimeType ?? 'image/jpeg',
@@ -208,7 +218,6 @@ export class ImagenService implements OnModuleInit {
           },
         };
       } else {
-        // Local base64 image
         return {
           inlineData: {
             mimeType: img.mimeType ?? 'image/jpeg',
@@ -217,27 +226,49 @@ export class ImagenService implements OnModuleInit {
         };
       }
     }) ?? [];
-    const finalPrompt = baseSystemPrompt + prompt;
+
+    // Build the user message parts.
+    // Structure: [style preamble text] → [reference images] → [generation instruction]
+    // This ordering ensures the model reads what the images *are* before seeing them,
+    // then receives the specific scene instruction.
+    const userParts: any[] = [];
+
+    if (hasReferenceImages) {
+      userParts.push({
+        text:
+          `The following ${referenceImages!.length} image(s) define the REQUIRED animation/illustration style. ` +
+          'You MUST replicate this exact visual style, color palette, line art, shading, and overall aesthetic in your generated image. ' +
+          'Do not deviate from this style under any circumstances.',
+      });
+      userParts.push(...imageParts);
+      userParts.push({
+        text:
+          `Now generate a new image IN EXACTLY THE SAME ANIMATION STYLE as the reference image(s) above.\n\n` +
+          `Scene instruction: ${prompt}`,
+      });
+    } else {
+      userParts.push({ text: prompt });
+    }
+
     const contents = [
       {
         role: 'user',
-        parts: [
-          ...imageParts,
-          { text: finalPrompt },
-        ],
+        parts: userParts,
       },
     ];
 
     // ------------------------------------------------------------------
     // Generation config using Google Gen AI SDK types
     // ------------------------------------------------------------------
+    // Always include TEXT when reference images are provided so the model can
+    // reason about them before generating. Without TEXT modality the model
+    // tends to ignore the reference images and generate something unrelated.
+    // The systemInstruction is set here (not in the user message) so the
+    // model treats it as a persistent system-level directive.
     const generationConfig: GenerateContentConfig = {
-      responseModalities: ['IMAGE'],
+      responseModalities: hasReferenceImages || config?.includeText ? ['TEXT', 'IMAGE'] : ['IMAGE'],
+      systemInstruction: baseSystemPrompt,
     };
-
-    if (config?.includeText) {
-      generationConfig.responseModalities.push('TEXT');
-    }
 
     if (config?.aspectRatio) {
       generationConfig.imageConfig = {
@@ -253,8 +284,9 @@ export class ImagenService implements OnModuleInit {
     // Request using Google Gen AI SDK
     // ------------------------------------------------------------------
     this.logger.debug(
-      `Calling Gemini 2.5 Flash Image with prompt="${finalPrompt}" ` +
-      `and ${referenceImages?.length ?? 0} reference image(s).`,
+      `Calling Gemini 2.5 Flash Image with prompt="${prompt}" ` +
+      `and ${referenceImages?.length ?? 0} reference image(s). ` +
+      `Style enforcement: ${hasReferenceImages ? 'ON' : 'OFF'}.`,
     );
 
     const response = await this.genaiClient.models.generateContent({
