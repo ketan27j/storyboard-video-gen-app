@@ -30,9 +30,10 @@ export class GenerationService {
     sceneIndex: number,
     imageIndex: number,
     prompt: string,
+    referenceImages?: string[],
   ): Promise<void> {
     await this.imageQueue.add('generate-image', {
-      sessionId, sceneIndex, imageIndex, prompt,
+      sessionId, sceneIndex, imageIndex, prompt, referenceImages,
     }, {
       attempts: 2,
       backoff: { type: 'exponential', delay: 5000 },
@@ -145,26 +146,29 @@ export class GenerationService {
   private async getCharacterReferenceImages(sessionId: string, sceneIndex: number): Promise<string[]> {
     try {
       const characterRefs: string[] = [];
-      
-      // Get the scene data to find which characters are present
       const outputDir = this.storageService.getOutputDir();
-      const scenePath = `${outputDir}/images/${sessionId}/scenes/scene_${String(sceneIndex + 1).padStart(2, '0')}.json`;
+      const charactersDir = `${outputDir}/images/${sessionId}/characters`;
       
-      if (require('fs').existsSync(scenePath)) {
-        const sceneData = JSON.parse(require('fs').readFileSync(scenePath, 'utf-8'));
-        const charactersPresent = sceneData.charactersPresent || [];
+      // Scan the characters directory directly to find all uploaded character reference images
+      if (require('fs').existsSync(charactersDir)) {
+        const files = require('fs').readdirSync(charactersDir);
         
-        // For each character in the scene, try to load their reference image
-        for (const characterName of charactersPresent) {
-          const characterImagePath = `${outputDir}/images/${sessionId}/characters/${characterName}_reference.png`;
+        // Filter for character reference images (files ending with _reference.png)
+        const characterImageFiles = files.filter(file => file.endsWith('_reference.png'));
+        
+        for (const imageFile of characterImageFiles) {
+          const characterImagePath = `${charactersDir}/${imageFile}`;
           
-          if (require('fs').existsSync(characterImagePath)) {
+          try {
             // Convert image to base64 for reference
             const imageBuffer = require('fs').readFileSync(characterImagePath);
             const base64Image = imageBuffer.toString('base64');
             characterRefs.push(base64Image);
             
-            this.logger.log(`Found character reference image for ${characterName} in scene ${sceneIndex}`);
+            const characterName = imageFile.replace('_reference.png', '');
+            this.logger.log(`Found character reference image for ${characterName}`);
+          } catch (readError) {
+            this.logger.warn(`Failed to read character image ${imageFile}: ${readError.message}`);
           }
         }
       }

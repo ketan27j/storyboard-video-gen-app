@@ -15,6 +15,7 @@ export class ImageProcessor {
     sceneIndex: number;
     imageIndex: number;
     prompt: string;
+    referenceImages?: string[];
   }>) {
     this.logger.log(`Processing image job ${job.id} for session ${job.data.sessionId}`);
     await this.generationService.processImageJob(job.data);

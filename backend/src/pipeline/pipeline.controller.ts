@@ -102,7 +102,7 @@ export class PipelineController {
     @Body('referenceImages') referenceImages?: string[],
   ) {
     if (!prompt) throw new BadRequestException('prompt is required');
-    await this.generationService.queueImageGeneration(sessionId, sceneIndex, imageIndex, prompt);
+    await this.generationService.queueImageGeneration(sessionId, sceneIndex, imageIndex, prompt, referenceImages);
     return { ok: true, queued: true };
   }
 

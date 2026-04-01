@@ -189,6 +189,11 @@ export class ImagenService implements OnModuleInit {
       );
     }
 
+    // If config?.aspectRatio then set it to 9:16 default for vertical image generation.
+    if (config?.aspectRatio) {
+      config.aspectRatio = '9:16';
+    }
+
     // ------------------------------------------------------------------
     // Build the `contents` array (Gemini multimodal message format).
     // Support both local base64 images and cloud storage URIs.
