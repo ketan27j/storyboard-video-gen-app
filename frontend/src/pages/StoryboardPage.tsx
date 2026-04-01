@@ -44,11 +44,14 @@ export function StoryboardPage() {
                 return (
                   <div key={s} className="flex items-center gap-1 sm:gap-2">
                     {i > 0 && <div className="w-4 sm:w-8 h-px bg-stone-800" />}
-                    <div className={`flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full text-xs font-mono transition-all ${
-                      isCurrent ? 'bg-amber-500 text-black font-black' :
-                      isPast ? 'text-amber-400/60' :
-                      'text-stone-600'
-                    }`}>
+                    <button
+                      onClick={() => setScreen(s)}
+                      className={`flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full text-xs font-mono transition-all cursor-pointer ${
+                        isCurrent ? 'bg-amber-500 text-black font-black' :
+                        isPast ? 'text-amber-400/60 hover:text-amber-400 hover:bg-amber-900/30' :
+                        'text-stone-600 hover:text-stone-400 hover:bg-stone-800/50'
+                      }`}
+                    >
                       <span className={`w-4 h-4 rounded-full flex items-center justify-center text-xs ${
                         isCurrent ? 'bg-black/20' :
                         isPast ? 'bg-amber-900/50' :
@@ -57,7 +60,7 @@ export function StoryboardPage() {
                         {isPast ? '✓' : stepIdx}
                       </span>
                       <span className="hidden sm:block">{SCREEN_LABELS[s]}</span>
-                    </div>
+                    </button>
                   </div>
                 );
               })}
