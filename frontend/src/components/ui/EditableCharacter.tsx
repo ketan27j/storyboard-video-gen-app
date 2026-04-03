@@ -176,44 +176,60 @@ export function EditableCharacter({
               </div>
             </div>
           ) : (
-            // Collapsed view - click to expand
-            <div 
-              onClick={handleExpandImage}
-              className="relative group cursor-pointer"
-            >
-              <div className="relative rounded-xl overflow-hidden border border-stone-600 bg-stone-800">
-                <img
-                  src={uploadedImageUrl}
-                  alt={`${name} reference`}
-                  className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
-                  <div className="bg-black/70 text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-2">
-                    <span>🔍</span> Click to view full image
+            // Collapsed view with image - show image + small action buttons
+            <div className="space-y-2">
+              <div 
+                onClick={handleExpandImage}
+                className="relative group cursor-pointer"
+              >
+                <div className="relative rounded-xl overflow-hidden border border-stone-600 bg-stone-800">
+                  <img
+                    src={uploadedImageUrl}
+                    alt={`${name} reference`}
+                    className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
+                    <div className="bg-black/70 text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-2">
+                      <span>🔍</span> Click to view full image
+                    </div>
                   </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleRemoveImage(); }}
+                    className="absolute top-2 right-2 w-7 h-7 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center text-white text-sm opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                  >
+                    ×
+                  </button>
                 </div>
-                <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {onRegenerateImage && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onRegenerateImage(); }}
-                      disabled={isGenerating}
-                      className="w-7 h-7 bg-cyan-600/80 hover:bg-cyan-500 rounded-full flex items-center justify-center text-white text-sm transition-all disabled:opacity-50"
-                      title="Regenerate image"
-                    >
-                      🔄
-                    </button>
-                  )}
-                </div>
+              </div>
+              
+              {/* Action buttons - always visible */}
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleRemoveImage(); }}
-                  className="absolute top-2 right-2 w-7 h-7 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center text-white text-sm opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                  onClick={handleImageClick}
+                  disabled={isUploading}
+                  className="flex-1 py-2 px-3 text-xs font-bold rounded-lg bg-stone-700/50 hover:bg-stone-700 text-stone-300 border border-stone-600 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
-                  ×
+                  <span>📁</span> Upload New
                 </button>
+                {onGenerateImage && (
+                  <button
+                    onClick={onGenerateImage}
+                    disabled={isGenerating}
+                    className="flex-1 py-2 px-3 text-xs font-bold rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 border border-cyan-600/50 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  >
+                    <span>✨</span> Generate AI
+                  </button>
+                )}
               </div>
-              <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <span>✓</span> Ready
-              </div>
+              
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+                disabled={isUploading}
+              />
             </div>
           )
         ) : isGenerating ? (

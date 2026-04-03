@@ -88,8 +88,20 @@ export class ImageProcessor {
       let buffer: Buffer;
 
       if (imageProvider === 'imagen' || imageProvider === 'imagen3') {
-        const result = await this.imagenService.generateImage(prompt);
-        buffer = result.imageBuffer;
+        // Check if there's an uploaded reference image for this character
+        const uploadedRefImage = await this.getUploadedCharacterImage(sessionId, characterName);
+        
+        if (uploadedRefImage) {
+          // Use uploaded image as reference
+          this.logger.log(`Using uploaded reference image for ${characterName}`);
+          const refInputs = [{ base64: uploadedRefImage, mimeType: 'image/png' as const }];
+          const result = await this.imagenService.generateImage(prompt, refInputs);
+          buffer = result.imageBuffer;
+        } else {
+          // No uploaded reference, generate without reference
+          const result = await this.imagenService.generateImage(prompt);
+          buffer = result.imageBuffer;
+        }
       } else if (imageProvider === 'leonardo') {
         buffer = await this.grokService.generateImage(prompt);
       } else if (imageProvider === 'chatgpt') {
@@ -99,8 +111,8 @@ export class ImageProcessor {
         buffer = await this.generatePlaceholderReferenceImage(prompt);
       }
 
-      // Save to characters directory
-      const filename = `${characterName.toLowerCase().replace(/\s+/g, '_')}_generated.png`;
+      // Save to characters directory - overwrite the reference file with generated image
+      const filename = `${characterName.toLowerCase().replace(/\s+/g, '_')}_reference.png`;
       const charactersDir = `output/images/${sessionId}/characters`;
       
       // Create characters directory if it doesn't exist
@@ -120,6 +132,30 @@ export class ImageProcessor {
       this.logger.error(`Character image generation failed for ${characterName}: ${err.message}`);
       this.gateway.emitCharacterImageProgress(sessionId, characterName, 'error');
       throw err;
+    }
+  }
+
+  private async getUploadedCharacterImage(sessionId: string, characterName: string): Promise<string | null> {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const charactersDir = path.join(process.env.OUTPUT_DIR || './output', 'images', sessionId, 'characters');
+      
+      // Look for uploaded reference image (files ending with _reference.png)
+      const characterFileName = `${characterName.toLowerCase().replace(/\s+/g, '_')}_reference.png`;
+      const characterImagePath = path.join(charactersDir, characterFileName);
+      
+      if (fs.existsSync(characterImagePath)) {
+        const imageBuffer = fs.readFileSync(characterImagePath);
+        const base64Image = imageBuffer.toString('base64');
+        this.logger.log(`Found uploaded reference image for ${characterName}`);
+        return base64Image;
+      }
+      
+      return null;
+    } catch (error) {
+      this.logger.warn(`Failed to get uploaded character image for ${characterName}: ${error.message}`);
+      return null;
     }
   }
 
