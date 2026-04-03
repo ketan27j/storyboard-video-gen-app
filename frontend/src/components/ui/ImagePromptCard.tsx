@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ImageData } from '../../types/pipeline.types';
 import { useGenerateImage, useUpdatePrompt } from '../../hooks/usePipeline';
+import { usePipelineStore } from '../../stores/pipelineStore';
 
 interface ImagePromptCardProps {
   image: ImageData;
@@ -11,10 +12,43 @@ interface ImagePromptCardProps {
 export function ImagePromptCard({ image, sceneIndex, imageIndex }: ImagePromptCardProps) {
   const generateImage = useGenerateImage();
   const updatePrompt = useUpdatePrompt();
+  const { scenes } = usePipelineStore();
   const [expanded, setExpanded] = useState(false);
   const [localPrompt, setLocalPrompt] = useState(image.prompt);
   const [promptChanged, setPromptChanged] = useState(false);
+  const [showCharacterRefs, setShowCharacterRefs] = useState(false);
+  const [selectedCharacterRefs, setSelectedCharacterRefs] = useState<string[]>([]);
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+  const currentScene = scenes[sceneIndex];
+  const charactersInScene = currentScene?.charactersPresent || [];
+  
+  // Get character reference images for characters in this scene
+  const characterRefImages = charactersInScene
+    .filter(char => currentScene?.characterReferenceImages?.[char])
+    .map(char => ({
+      name: char,
+      url: (currentScene.characterReferenceImages as Record<string, string>)?.[char].startsWith('http')
+        ? (currentScene.characterReferenceImages as Record<string, string>)?.[char]
+        : `${API_URL}/${(currentScene.characterReferenceImages as Record<string, string>)?.[char]}`,
+      type: 'character' as const
+    }));
+  
+  // Get previously generated images for this scene (excluding current image)
+  const sceneGeneratedImages = (currentScene?.imageSequence || [])
+    .filter((_, idx) => idx !== imageIndex && (_.generatedUrl || _.localPath))
+    .map((img, idx) => ({
+      name: `Image ${idx + 1}`,
+      url: img.generatedUrl?.startsWith('http')
+        ? img.generatedUrl
+        : img.generatedUrl
+          ? `${API_URL}/${img.generatedUrl}`
+          : `${API_URL}/${img.localPath}`,
+      type: 'scene' as const
+    }));
+  
+  // Combine all reference images
+  const allRefImages = [...characterRefImages, ...sceneGeneratedImages];
 
   useEffect(() => {
     setLocalPrompt(image.prompt);
@@ -22,7 +56,15 @@ export function ImagePromptCard({ image, sceneIndex, imageIndex }: ImagePromptCa
   }, [image.prompt]);
 
   const handleGenerate = () => {
-    generateImage.mutate({ sceneIndex, imageIndex, prompt: localPrompt });
+    // Get the actual image URLs for selected character references
+    const referenceImageUrls = selectedCharacterRefs
+      .map((charName: string) => {
+        const charRef = characterRefImages.find(c => c.name === charName);
+        return charRef?.url || null;
+      })
+      .filter(Boolean) as string[];
+    
+    generateImage.mutate({ sceneIndex, imageIndex, prompt: localPrompt, referenceImages: referenceImageUrls });
     setPromptChanged(false);
   };
 
@@ -31,6 +73,14 @@ export function ImagePromptCard({ image, sceneIndex, imageIndex }: ImagePromptCa
       updatePrompt.mutate({ sceneIndex, type: 'image', index: imageIndex, prompt: localPrompt });
       setPromptChanged(true);
     }
+  };
+
+  const toggleCharacterRef = (charName: string) => {
+    setSelectedCharacterRefs(prev => 
+      prev.includes(charName) 
+        ? prev.filter(c => c !== charName)
+        : [...prev, charName]
+    );
   };
 
   const imgSrc = image.generatedUrl
@@ -78,6 +128,95 @@ export function ImagePromptCard({ image, sceneIndex, imageIndex }: ImagePromptCa
           rows={3}
         />
       </div>
+
+      {/* Reference Images Selector (Characters + Scene Images) */}
+      {allRefImages.length > 0 && (
+        <div className="px-4 pb-2">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-mono text-stone-500 uppercase tracking-wider">
+              Reference Images
+            </span>
+            <button
+              onClick={() => setShowCharacterRefs(!showCharacterRefs)}
+              className="text-[10px] text-amber-400 hover:text-amber-300 flex items-center gap-1"
+            >
+              {showCharacterRefs ? 'Hide' : 'Show'} ({allRefImages.length})
+            </button>
+          </div>
+          
+          {showCharacterRefs && (
+            <div className="space-y-2">
+              {/* Character References */}
+              {characterRefImages.length > 0 && (
+                <div>
+                  <p className="text-[9px] font-mono text-stone-500 mb-1 uppercase">Characters</p>
+                  <div className="flex flex-wrap gap-2 p-2 bg-stone-800/30 rounded-lg border border-stone-700/30">
+                    {characterRefImages.map((char) => (
+                      <div
+                        key={char.name}
+                        onClick={() => toggleCharacterRef(char.name)}
+                        className={`relative cursor-pointer transition-all ${
+                          selectedCharacterRefs.includes(char.name)
+                            ? 'ring-2 ring-amber-500 ring-offset-2 ring-offset-stone-900'
+                            : 'opacity-70 hover:opacity-100'
+                        }`}
+                      >
+                        <img
+                          src={char.url}
+                          alt={char.name}
+                          className="w-12 h-12 object-cover rounded border border-stone-600"
+                        />
+                        <div className="absolute -bottom-1 -right-1 bg-stone-900 text-[9px] text-stone-300 px-1 rounded">
+                          {char.name}
+                        </div>
+                        {selectedCharacterRefs.includes(char.name) && (
+                          <div className="absolute top-0 right-0 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center text-white text-[10px]">
+                            ✓
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Scene Generated Images */}
+              {sceneGeneratedImages.length > 0 && (
+                <div>
+                  <p className="text-[9px] font-mono text-stone-500 mb-1 uppercase">Scene Images</p>
+                  <div className="flex flex-wrap gap-2 p-2 bg-stone-800/30 rounded-lg border border-stone-700/30">
+                    {sceneGeneratedImages.map((img) => (
+                      <div
+                        key={img.name}
+                        onClick={() => toggleCharacterRef(img.name)}
+                        className={`relative cursor-pointer transition-all ${
+                          selectedCharacterRefs.includes(img.name)
+                            ? 'ring-2 ring-cyan-500 ring-offset-2 ring-offset-stone-900'
+                            : 'opacity-70 hover:opacity-100'
+                        }`}
+                      >
+                        <img
+                          src={img.url}
+                          alt={img.name}
+                          className="w-12 h-12 object-cover rounded border border-stone-600"
+                        />
+                        <div className="absolute -bottom-1 -right-1 bg-stone-900 text-[9px] text-stone-300 px-1 rounded">
+                          {img.name}
+                        </div>
+                        {selectedCharacterRefs.includes(img.name) && (
+                          <div className="absolute top-0 right-0 w-4 h-4 bg-cyan-500 rounded-full flex items-center justify-center text-white text-[10px]">
+                            ✓
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Generated image */}
       {imgSrc && (

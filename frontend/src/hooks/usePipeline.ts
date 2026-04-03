@@ -88,12 +88,12 @@ export function useGenerateImage() {
 
   return useMutation({
     mutationFn: ({
-      sceneIndex, imageIndex, prompt,
-    }: { sceneIndex: number; imageIndex: number; prompt: string }) => {
+      sceneIndex, imageIndex, prompt, referenceImages,
+    }: { sceneIndex: number; imageIndex: number; prompt: string; referenceImages?: string[] }) => {
       updateImageStatus(sceneIndex, imageIndex, { status: 'generating' });
       return apiFetch(`/api/pipeline/${sessionId}/generate-image`, {
         method: 'POST',
-        body: JSON.stringify({ sceneIndex, imageIndex, prompt }),
+        body: JSON.stringify({ sceneIndex, imageIndex, prompt, referenceImages }),
       });
     },
   });
