@@ -76,9 +76,85 @@ export function useCharacterEdit() {
     }
   };
 
+  const updateSceneGoal = async (sceneIndex: number, goal: string) => {
+    if (!sessionId) return;
+
+    setIsUpdating(true);
+    try {
+      const response = await fetch(`/api/pipeline/${sessionId}/update-scene-goal`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sceneIndex,
+          goal
+        }),
+      });
+
+      if (response.ok) {
+        // Update local state
+        const currentState = usePipelineStore.getState();
+        const updatedScenes = [...currentState.scenes];
+        if (updatedScenes[sceneIndex]) {
+          updatedScenes[sceneIndex] = {
+            ...updatedScenes[sceneIndex],
+            goal
+          };
+        }
+        usePipelineStore.setState({ scenes: updatedScenes });
+      } else {
+        console.error('Failed to update scene goal');
+      }
+    } catch (error) {
+      console.error('Error updating scene goal:', error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const updateSceneLocation = async (sceneIndex: number, location: string) => {
+    if (!sessionId) return;
+
+    setIsUpdating(true);
+    try {
+      const response = await fetch(`/api/pipeline/${sessionId}/update-scene-location`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sceneIndex,
+          location
+        }),
+      });
+
+      if (response.ok) {
+        // Update local state
+        const currentState = usePipelineStore.getState();
+        const updatedScenes = [...currentState.scenes];
+        if (updatedScenes[sceneIndex]) {
+          updatedScenes[sceneIndex] = {
+            ...updatedScenes[sceneIndex],
+            location
+          };
+        }
+        usePipelineStore.setState({ scenes: updatedScenes });
+      } else {
+        console.error('Failed to update scene location');
+      }
+    } catch (error) {
+      console.error('Error updating scene location:', error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   return {
     updateCharacterDescription,
     updateSceneText,
+    updateSceneGoal,
+    updateSceneLocation,
     isUpdating
   };
 }

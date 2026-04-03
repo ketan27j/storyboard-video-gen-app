@@ -13,19 +13,23 @@ export function ImagePromptCard({ image, sceneIndex, imageIndex }: ImagePromptCa
   const updatePrompt = useUpdatePrompt();
   const [expanded, setExpanded] = useState(false);
   const [localPrompt, setLocalPrompt] = useState(image.prompt);
+  const [promptChanged, setPromptChanged] = useState(false);
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   useEffect(() => {
     setLocalPrompt(image.prompt);
+    setPromptChanged(false);
   }, [image.prompt]);
 
   const handleGenerate = () => {
-    generateImage.mutate({ sceneIndex, imageIndex, prompt: image.prompt });
+    generateImage.mutate({ sceneIndex, imageIndex, prompt: localPrompt });
+    setPromptChanged(false);
   };
 
   const handleBlur = () => {
     if (localPrompt !== image.prompt) {
       updatePrompt.mutate({ sceneIndex, type: 'image', index: imageIndex, prompt: localPrompt });
+      setPromptChanged(true);
     }
   };
 
@@ -35,6 +39,8 @@ export function ImagePromptCard({ image, sceneIndex, imageIndex }: ImagePromptCa
       : `${API_URL}/${image.generatedUrl}`
     : null;
 
+  const isRegenerate = image.status === 'done' && (promptChanged || expanded);
+
   return (
     <div className="border border-stone-700/50 rounded-xl overflow-hidden bg-stone-900/30">
       {/* Header */}
@@ -42,21 +48,31 @@ export function ImagePromptCard({ image, sceneIndex, imageIndex }: ImagePromptCa
         <span className="text-xs font-mono text-amber-400/80 tracking-widest">
           {image.label || `IMAGE ${imageIndex + 1}`}
         </span>
-        <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${
-          image.status === 'done' ? 'bg-emerald-900/60 text-emerald-400' :
-          image.status === 'generating' ? 'bg-amber-900/60 text-amber-400' :
-          image.status === 'error' ? 'bg-rose-900/60 text-rose-400' :
-          'bg-stone-800 text-stone-500'
-        }`}>
-          {image.status}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${
+            image.status === 'done' ? 'bg-emerald-900/60 text-emerald-400' :
+            image.status === 'generating' ? 'bg-amber-900/60 text-amber-400' :
+            image.status === 'error' ? 'bg-rose-900/60 text-rose-400' :
+            'bg-stone-800 text-stone-500'
+          }`}>
+            {image.status}
+          </span>
+          {promptChanged && image.status === 'done' && (
+            <span className="text-[10px] text-cyan-400 font-mono">
+              ✏️ Prompt modified
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Prompt */}
       <div className="px-4 py-3">
         <textarea
           value={localPrompt}
-          onChange={(e) => setLocalPrompt(e.target.value)}
+          onChange={(e) => {
+            setLocalPrompt(e.target.value);
+            setPromptChanged(e.target.value !== image.prompt);
+          }}
           onBlur={handleBlur}
           className="w-full text-xs font-mono text-stone-400 leading-relaxed bg-stone-900/50 border border-stone-700/50 rounded-lg p-2 resize-y focus:outline-none focus:border-amber-500/50"
           rows={3}
@@ -92,19 +108,27 @@ export function ImagePromptCard({ image, sceneIndex, imageIndex }: ImagePromptCa
         </div>
       )}
 
-      {/* Generate button */}
-      {image.status !== 'done' && (
+      {/* Generate/Regenerate button */}
+      {image.status !== 'generating' && (
         <div className="px-4 pb-4">
           <button
             onClick={handleGenerate}
             disabled={image.status === 'generating'}
-            className="w-full py-2 rounded-lg border border-amber-600/50 text-amber-400 text-xs font-mono tracking-widest hover:bg-amber-950/40 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className={`w-full py-2 rounded-lg text-xs font-mono tracking-widest transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+              isRegenerate
+                ? 'bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-600/50 text-cyan-400'
+                : 'bg-amber-600/20 hover:bg-amber-600/30 border border-amber-600/50 text-amber-400'
+            }`}
           >
             {image.status === 'generating' ? (
               <>
                 <div className="w-3 h-3 border border-amber-400/30 border-t-amber-400 rounded-full animate-spin" />
                 GENERATING…
               </>
+            ) : isRegenerate ? (
+              '🔄 REGENERATE (Prompt Changed)'
+            ) : image.status === 'done' ? (
+              '🔄 REGENERATE'
             ) : (
               '🎨 GENERATE IMAGE'
             )}

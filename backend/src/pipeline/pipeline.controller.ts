@@ -92,6 +92,30 @@ export class PipelineController {
     return { ok: true };
   }
 
+  @Post(':id/update-scene-goal')
+  @HttpCode(HttpStatus.OK)
+  async updateSceneGoal(
+    @Param('id') sessionId: string,
+    @Body('sceneIndex') sceneIndex: number,
+    @Body('goal') goal: string,
+  ) {
+    if (sceneIndex < 0) throw new BadRequestException('sceneIndex is required');
+    await this.pipelineService.updateSceneGoal(sessionId, sceneIndex, goal);
+    return { ok: true };
+  }
+
+  @Post(':id/update-scene-location')
+  @HttpCode(HttpStatus.OK)
+  async updateSceneLocation(
+    @Param('id') sessionId: string,
+    @Body('sceneIndex') sceneIndex: number,
+    @Body('location') location: string,
+  ) {
+    if (sceneIndex < 0) throw new BadRequestException('sceneIndex is required');
+    await this.pipelineService.updateSceneLocation(sessionId, sceneIndex, location);
+    return { ok: true };
+  }
+
   @Post(':id/generate-image')
   @HttpCode(HttpStatus.ACCEPTED)
   async generateImage(
