@@ -42,6 +42,17 @@ export class StorageService {
     return `output/videos/${sessionId}/${filename}`;
   }
 
+  async saveReferenceImage(buffer: Buffer, sessionId: string): Promise<string> {
+    const storyDir = path.join(this.outputDir, 'images', sessionId);
+    fs.mkdirSync(storyDir, { recursive: true });
+    
+    const filename = `reference_image.png`;
+    const filepath = path.join(storyDir, filename);
+    fs.writeFileSync(filepath, buffer);
+    this.logger.log(`Saved reference image: ${filename} in story ${sessionId}`);
+    return `output/images/${sessionId}/${filename}`;
+  }
+
   getOutputDir() {
     return this.outputDir;
   }

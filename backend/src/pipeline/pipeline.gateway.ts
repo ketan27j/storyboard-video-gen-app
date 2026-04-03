@@ -81,4 +81,28 @@ export class PipelineGateway {
       url,
     });
   }
+
+  emitReferenceImageProgress(
+    sessionId: string,
+    status: string,
+    url?: string,
+  ) {
+    this.server.to(`session:${sessionId}`).emit('reference-image:progress', {
+      status,
+      url,
+    });
+  }
+
+  emitCharacterImageProgress(
+    sessionId: string,
+    characterName: string,
+    status: string,
+    url?: string,
+  ) {
+    this.server.to(`session:${sessionId}`).emit('character-image:progress', {
+      characterName,
+      status,
+      url,
+    });
+  }
 }

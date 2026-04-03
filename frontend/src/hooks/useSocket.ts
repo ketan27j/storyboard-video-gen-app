@@ -71,6 +71,25 @@ export function useSocket(sessionId: string | null) {
         });
       });
 
+      socket.on('reference-image:progress', ({
+        status, url,
+      }: { status: string; url?: string }) => {
+        store.setReferenceImageStatus({
+          status: status as any,
+          url,
+        });
+      });
+
+      socket.on('character-image:progress', ({
+        characterName, status, url,
+      }: { characterName: string; status: string; url?: string }) => {
+        console.log('Character image progress:', { characterName, status, url });
+        // Emit a custom event that StoryPlanReview can listen to
+        window.dispatchEvent(new CustomEvent('character-image-progress', { 
+          detail: { characterName, status, url } 
+        }));
+      });
+
       return () => {
         socket.disconnect();
       };

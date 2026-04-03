@@ -1,15 +1,31 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useCharacterEdit } from '../../hooks/useCharacterEdit';
 
 interface EditableCharacterProps {
   name: string;
   description: string;
+  uploadedImageUrl?: string;
+  onImageUpload?: (characterName: string, file: File) => Promise<void>;
+  onGenerateImage?: () => Promise<void>;
+  onRegenerateImage?: () => Promise<void>;
+  isGenerating?: boolean;
 }
 
-export function EditableCharacter({ name, description }: EditableCharacterProps) {
+export function EditableCharacter({ 
+  name, 
+  description, 
+  uploadedImageUrl,
+  onImageUpload,
+  onGenerateImage,
+  onRegenerateImage,
+  isGenerating = false
+}: EditableCharacterProps) {
   const { updateCharacterDescription, isUpdating } = useCharacterEdit();
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(description);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSave = () => {
     if (value.trim() && value !== description) {
@@ -31,8 +47,41 @@ export function EditableCharacter({ name, description }: EditableCharacterProps)
     }
   };
 
+  const handleImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !onImageUpload) return;
+
+    setIsUploading(true);
+    try {
+      await onImageUpload(name, file);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+    } finally {
+      setIsUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveImage = () => {
+    console.log('Remove image for character:', name);
+  };
+
+  const handleExpandImage = () => {
+    if (uploadedImageUrl) {
+      setIsExpanded(true);
+    }
+  };
+
+  const handleCollapseImage = () => {
+    setIsExpanded(false);
+  };
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-xs font-mono text-amber-400/70 tracking-widest uppercase">
           Character: {name}
@@ -81,6 +130,148 @@ export function EditableCharacter({ name, description }: EditableCharacterProps)
           {description}
         </p>
       )}
+
+      {/* Character Image Display Area */}
+      <div className="space-y-3">
+        {uploadedImageUrl ? (
+          isExpanded ? (
+            // Expanded view - full image
+            <div className="relative">
+              <div className="relative rounded-xl overflow-hidden border border-stone-500 bg-stone-800">
+                <img
+                  src={uploadedImageUrl}
+                  alt={`${name} reference`}
+                  className="w-full h-auto max-h-96 object-contain bg-stone-900"
+                />
+                <button
+                  onClick={handleCollapseImage}
+                  className="absolute top-2 right-2 w-8 h-8 bg-black/70 hover:bg-black/90 rounded-full flex items-center justify-center text-white text-lg transition-all shadow-lg"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="flex items-center justify-between mt-2">
+                <div className="flex items-center gap-2">
+                  <div className="bg-green-600/20 text-green-400 text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                    <span>✓</span> Character Reference Ready
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {onRegenerateImage && (
+                    <button
+                      onClick={onRegenerateImage}
+                      disabled={isGenerating}
+                      className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span>🔄</span> Regenerate
+                    </button>
+                  )}
+                  <button
+                    onClick={handleRemoveImage}
+                    className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
+                  >
+                    <span>🗑</span> Remove
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            // Collapsed view - click to expand
+            <div 
+              onClick={handleExpandImage}
+              className="relative group cursor-pointer"
+            >
+              <div className="relative rounded-xl overflow-hidden border border-stone-600 bg-stone-800">
+                <img
+                  src={uploadedImageUrl}
+                  alt={`${name} reference`}
+                  className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
+                  <div className="bg-black/70 text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-2">
+                    <span>🔍</span> Click to view full image
+                  </div>
+                </div>
+                <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {onRegenerateImage && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onRegenerateImage(); }}
+                      disabled={isGenerating}
+                      className="w-7 h-7 bg-cyan-600/80 hover:bg-cyan-500 rounded-full flex items-center justify-center text-white text-sm transition-all disabled:opacity-50"
+                      title="Regenerate image"
+                    >
+                      🔄
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleRemoveImage(); }}
+                  className="absolute top-2 right-2 w-7 h-7 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center text-white text-sm opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <span>✓</span> Ready
+              </div>
+            </div>
+          )
+        ) : isGenerating ? (
+          <div className="relative rounded-xl overflow-hidden border-2 border-cyan-500/50 bg-stone-800 h-48 flex items-center justify-center">
+            <div className="text-center space-y-3">
+              <div className="flex justify-center">
+                <div className="w-12 h-12 border-4 border-cyan-500/30 border-t-cyan-400 rounded-full animate-spin" />
+              </div>
+              <p className="text-cyan-400 text-sm font-bold">Generating character image...</p>
+              <p className="text-stone-500 text-xs">This may take a few moments</p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {/* Upload Area */}
+            <div 
+              onClick={handleImageClick}
+              className="relative rounded-xl border-2 border-dashed border-stone-600 hover:border-amber-500 hover:bg-amber-900/10 flex flex-col items-center justify-center h-36 cursor-pointer transition-all group"
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+                disabled={isUploading}
+              />
+              <div className="text-3xl text-stone-500 group-hover:text-amber-400 transition-colors mb-2">
+                📁
+              </div>
+              <p className="text-xs text-stone-400 group-hover:text-amber-400/80 text-center px-2">
+                Upload Reference Image
+              </p>
+              {isUploading && (
+                <div className="absolute inset-0 bg-stone-900/80 flex items-center justify-center rounded-xl">
+                  <div className="w-6 h-6 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin" />
+                </div>
+              )}
+            </div>
+
+            {/* Generate Area */}
+            <div 
+              onClick={onGenerateImage}
+              className="relative rounded-xl border-2 border-dashed border-cyan-600/50 hover:border-cyan-500 hover:bg-cyan-900/10 flex flex-col items-center justify-center h-36 cursor-pointer transition-all group"
+            >
+              <div className="text-3xl text-stone-500 group-hover:text-cyan-400 transition-colors mb-2">
+                ✨
+              </div>
+              <p className="text-xs text-stone-400 group-hover:text-cyan-400/80 text-center px-2">
+                Generate with AI
+              </p>
+              <p className="text-[10px] text-stone-500 mt-1">
+                Based on description
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

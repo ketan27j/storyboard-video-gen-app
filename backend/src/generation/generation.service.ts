@@ -42,6 +42,35 @@ export class GenerationService {
     this.logger.log(`Queued image generation for session ${sessionId}, scene ${sceneIndex}, image ${imageIndex}`);
   }
 
+  async queueReferenceImageGeneration(
+    sessionId: string,
+    prompt: string,
+  ): Promise<void> {
+    await this.imageQueue.add('generate-reference-image', {
+      sessionId, prompt,
+    }, {
+      attempts: 2,
+      backoff: { type: 'exponential', delay: 5000 },
+    });
+
+    this.logger.log(`Queued reference image generation for session ${sessionId}`);
+  }
+
+  async queueCharacterImageGeneration(
+    sessionId: string,
+    characterName: string,
+    prompt: string,
+  ): Promise<void> {
+    await this.imageQueue.add('generate-character-image', {
+      sessionId, characterName, prompt,
+    }, {
+      attempts: 2,
+      backoff: { type: 'exponential', delay: 5000 },
+    });
+
+    this.logger.log(`Queued character image generation for ${characterName} in session ${sessionId}`);
+  }
+
   async queueVideoGeneration(
     sessionId: string,
     sceneIndex: number,

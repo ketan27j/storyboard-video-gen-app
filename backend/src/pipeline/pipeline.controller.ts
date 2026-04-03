@@ -157,6 +157,34 @@ export class PipelineController {
     return { ok: true, queued: true };
   }
 
+  @Post(':id/generate-reference-image')
+  @HttpCode(HttpStatus.ACCEPTED)
+  async generateReferenceImage(
+    @Param('id') sessionId: string,
+    @Body('prompt') prompt?: string,
+  ) {
+    if (!prompt) throw new BadRequestException('prompt is required');
+    await this.generationService.queueReferenceImageGeneration(sessionId, prompt);
+    return { ok: true, queued: true };
+  }
+
+  @Post(':id/generate-character-image')
+  @HttpCode(HttpStatus.ACCEPTED)
+  async generateCharacterImage(
+    @Param('id') sessionId: string,
+    @Body('characterName') characterName: string,
+    @Body('prompt') prompt: string,
+  ) {
+    if (!characterName || !prompt) {
+      throw new BadRequestException('characterName and prompt are required');
+    }
+    
+    // Queue character image generation
+    await this.generationService.queueCharacterImageGeneration(sessionId, characterName, prompt);
+    
+    return { ok: true, queued: true };
+  }
+
   @Get(':id/download-all')
   async downloadAll(@Param('id') sessionId: string, @Query('type') type: 'images' | 'videos') {
     const state = await this.pipelineService.getState(sessionId);

@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 import { Screen, SceneData, ImageData, VideoData } from '../types/pipeline.types';
 
+interface ReferenceImageState {
+  status: 'idle' | 'generating' | 'done' | 'error';
+  url?: string;
+}
+
 interface PipelineStore {
   // Session
   sessionId: string | null;
@@ -20,6 +25,9 @@ interface PipelineStore {
   interruptType: string | null;
   error: string | null;
 
+  // Reference image state
+  referenceImage: ReferenceImageState;
+
   // Actions
   setSessionId: (id: string) => void;
   setScreen: (screen: Screen) => void;
@@ -27,6 +35,7 @@ interface PipelineStore {
   setLoading: (loading: boolean) => void;
   setStreamingText: (text: string) => void;
   setError: (error: string | null) => void;
+  setReferenceImageStatus: (data: Partial<ReferenceImageState>) => void;
   updateFromBackend: (state: Partial<PipelineStore>) => void;
   updateImageStatus: (sceneIdx: number, imgIdx: number, data: Partial<ImageData>) => void;
   updateVideoStatus: (sceneIdx: number, vidIdx: number, data: Partial<VideoData>) => void;
@@ -46,6 +55,7 @@ const initialState = {
   streamingText: '',
   interruptType: null,
   error: null,
+  referenceImage: { status: 'idle' } as ReferenceImageState,
 };
 
 export const usePipelineStore = create<PipelineStore>((set) => ({
@@ -57,6 +67,9 @@ export const usePipelineStore = create<PipelineStore>((set) => ({
   setLoading: (isLoading) => set({ isLoading }),
   setStreamingText: (streamingText) => set({ streamingText }),
   setError: (error) => set({ error }),
+  setReferenceImageStatus: (data) => set((prev) => ({
+    referenceImage: { ...prev.referenceImage, ...data }
+  })),
 
   updateFromBackend: (state) => set((prev) => ({ ...prev, ...state })),
 

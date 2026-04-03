@@ -134,3 +134,15 @@ export function useDownloadAll() {
       apiFetch(`/api/pipeline/${sessionId}/download-all?type=${type}`),
   });
 }
+
+export function useGenerateReferenceImage() {
+  const { sessionId } = usePipelineStore();
+
+  return useMutation({
+    mutationFn: (prompt: string) =>
+      apiFetch(`/api/pipeline/${sessionId}/generate-reference-image`, {
+        method: 'POST',
+        body: JSON.stringify({ prompt }),
+      }),
+  });
+}

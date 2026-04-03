@@ -5,7 +5,7 @@ import { useStartPipeline } from '../../hooks/usePipeline';
 const EXAMPLES = [
   'Mother (Sajiri)(around 30s) explaining importance of Gudhi Padava festival in india to her 4 yr daughter (Chinu) in brief. What indian people do during that festival. eg: They mount Gudhi in their home decorated with sari, flowers, garlands, which is symbol of prosperity and new beginning. They prepare special food like Shrikhand puri, puran poli. They have shobha yatra with traditional attire of navvari and feta, dhoti.',
   'Mother (Sajiri)(around 30s) explaining importance of Ram Navami festival in india to her 4 yr daughter (Chinu) in brief. What indian people do during that festival. eg: Visit temples dedicated to Lord Rama, Do fasting or eat simple satvik food like fruits, sabudana dishes, or kheer and Temples decorate idols and sometimes re-enact scenes from the Ramayana',
-  'Baby Hanuman birth day explaining short stories of him of catching sun thinking it is a fruit, flying to the Himalayas to get sanjeevani herb to save Lakshman, his devotion to Lord Rama, and his strength and bravery. (Sajiri)(around 30s) explaining to her 4 yr daughter (Chinu) in brief.',
+  'Koli lady (Sajiri) and other 4 ladies wearing traditional nauwari sadi having hair bun (veni) capturing fish (paplet) in konkan sea & then making paplet fry at home in indian village',
 ];
 
 export function IdeaInput() {
