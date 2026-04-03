@@ -29,6 +29,7 @@ export interface SceneData {
   charactersPresent: string[];
   characterDescriptions: Record<string, string>;
   characterImagePrompts: string[];
+  characterReferenceImages?: Record<string, string>;
   imageSequence: ImageData[];
   videoMotionPrompts: VideoData[];
   approved: boolean;

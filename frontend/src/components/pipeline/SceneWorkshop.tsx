@@ -62,10 +62,32 @@ export function SceneWorkshop() {
             {characterEntries.length > 0 && (
               <div>
                 <p className="text-xs font-mono text-stone-500 tracking-widest mb-2">CHARACTERS IN SCENE</p>
-                <div className="space-y-2">
-                  {characterEntries.map(([name, desc], i) => (
-                    <CharacterBadge key={name} name={name} description={desc} index={i} />
-                  ))}
+                <div className="space-y-3">
+                  {characterEntries.map(([name, desc], i) => {
+                    // Check if there's a character reference image
+                    const characterRefImage = scene.characterReferenceImages?.[name];
+                    return (
+                      <div key={name} className="space-y-1">
+                        <CharacterBadge name={name} description={desc} index={i} />
+                        {characterRefImage && (
+                          <div className="ml-1 pl-2 border-l-2 border-stone-700">
+                            <p className="text-[10px] text-stone-500 mb-1">Reference:</p>
+                            <img
+                              src={characterRefImage.startsWith('http') 
+                                ? characterRefImage 
+                                : `http://localhost:3001/${characterRefImage}`
+                              }
+                              alt={`${name} reference`}
+                              className="w-16 h-16 object-cover rounded border border-stone-700 cursor-pointer hover:border-amber-500 transition-colors"
+                              onClick={() => window.open(characterRefImage.startsWith('http') 
+                                ? characterRefImage 
+                                : `http://localhost:3001/${characterRefImage}`, '_blank')}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
