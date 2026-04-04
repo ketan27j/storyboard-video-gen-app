@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
-import { ImagenService } from './imagen.service';
+import { ImagenService, ReferenceImageInput } from './imagen.service';
 import { VeoService } from './veo.service';
 import { GrokService } from './grok.service';
 import { ChatGptService } from './chatgpt.service';
@@ -103,33 +103,49 @@ export class GenerationService {
       let buffer: Buffer;
 
       if (this.imageProvider === 'imagen') {
-        // Get character reference images for this scene
+        // Get character reference images for this scene (already base64)
         const characterRefs = await this.getCharacterReferenceImages(sessionId, sceneIndex);
-        // Get custom uploaded scene image if exists
+        // Get custom uploaded scene image if exists (already base64)
         const customSceneImage = await this.getCustomSceneImage(sessionId, sceneIndex, imageIndex);
-        const allReferenceImages = [...(referenceImages || []), ...characterRefs];
+        
+        // Convert URL-based reference images from frontend to base64
+        const convertedRefImages = await this.convertReferenceImagesToBase64(referenceImages || []);
+        
+        // Combine all reference images: frontend URLs (converted) + character refs
+        const allReferenceImages = [...convertedRefImages, ...characterRefs];
         
         // If custom scene image exists, add it as primary reference
         if (customSceneImage) {
           allReferenceImages.unshift(customSceneImage);
         }
         
-        const refInputs = allReferenceImages?.map((b64) => ({ base64: b64 })) ?? undefined;
+        // Limit to max 3 reference images (Gemini 2.5 Flash Image limit)
+        const limitedRefImages = allReferenceImages.slice(0, 3);
+        
+        const refInputs = limitedRefImages.map((b64) => ({ base64: b64 }));
         const result = await this.imagenService.generateImage(prompt, refInputs);
         buffer = result.imageBuffer;
       } else if (this.imageProvider === 'imagen3') {
-        // Get character reference images for this scene
+        // Get character reference images for this scene (already base64)
         const characterRefs = await this.getCharacterReferenceImages(sessionId, sceneIndex);
-        // Get custom uploaded scene image if exists
+        // Get custom uploaded scene image if exists (already base64)
         const customSceneImage = await this.getCustomSceneImage(sessionId, sceneIndex, imageIndex);
-        const allReferenceImages = [...(referenceImages || []), ...characterRefs];
+        
+        // Convert URL-based reference images from frontend to base64
+        const convertedRefImages = await this.convertReferenceImagesToBase64(referenceImages || []);
+        
+        // Combine all reference images: frontend URLs (converted) + character refs
+        const allReferenceImages = [...convertedRefImages, ...characterRefs];
         
         // If custom scene image exists, add it as primary reference
         if (customSceneImage) {
           allReferenceImages.unshift(customSceneImage);
         }
         
-        const refInputs = allReferenceImages?.map((b64) => ({ base64: b64 })) ?? undefined;
+        // Limit to max 3 reference images (Gemini 2.5 Flash Image limit)
+        const limitedRefImages = allReferenceImages.slice(0, 3);
+        
+        const refInputs = limitedRefImages.map((b64) => ({ base64: b64 }));
         const result = await this.imagenService.generateImage(prompt, refInputs);
         buffer = result.imageBuffer;
       } else if (this.imageProvider === 'leonardo') {
@@ -244,6 +260,50 @@ export class GenerationService {
       this.logger.warn(`Failed to get custom scene image: ${error.message}`);
       return null;
     }
+  }
+
+  /**
+   * Convert reference image URLs to base64 strings.
+   * Handles both HTTP URLs (fetches the image) and already-base64 strings (passes through).
+   */
+  private async convertReferenceImagesToBase64(referenceImages: string[]): Promise<string[]> {
+    const converted: string[] = [];
+    
+    for (const refImage of referenceImages) {
+      if (!refImage) continue;
+      
+      // Check if it's already a base64 string (no http:// or https:// prefix)
+      if (!refImage.startsWith('http://') && !refImage.startsWith('https://')) {
+        // Already base64, pass through
+        converted.push(refImage);
+        continue;
+      }
+      
+      // It's a URL, fetch and convert to base64
+      try {
+        this.logger.log(`Fetching reference image from URL: ${refImage}`);
+        
+        // Use fetch to get the image
+        const response = await fetch(refImage);
+        
+        if (!response.ok) {
+          this.logger.warn(`Failed to fetch reference image from ${refImage}: ${response.status} ${response.statusText}`);
+          continue;
+        }
+        
+        // Get the image as an ArrayBuffer and convert to base64
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const base64Image = buffer.toString('base64');
+        
+        converted.push(base64Image);
+        this.logger.log(`Successfully converted URL to base64 for reference image`);
+      } catch (error) {
+        this.logger.warn(`Error fetching reference image ${refImage}: ${error.message}`);
+      }
+    }
+    
+    return converted;
   }
 
   private async generatePlaceholderImage(prompt: string): Promise<Buffer> {
