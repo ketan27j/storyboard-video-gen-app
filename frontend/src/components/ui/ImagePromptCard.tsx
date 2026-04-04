@@ -251,6 +251,40 @@ export function ImagePromptCard({ image, sceneIndex, imageIndex }: ImagePromptCa
                 </div>
               </div>
             )}
+            
+            {/* Custom Uploaded Image */}
+            {customImageRef.length > 0 && (
+              <div>
+                <p className="text-[10px] font-mono text-stone-500 mb-2 uppercase tracking-wide">Custom Upload</p>
+                <div className="flex flex-wrap gap-2 p-2 bg-stone-800/30 rounded-lg border border-stone-700/30">
+                  {customImageRef.map((img) => (
+                    <div
+                      key={img.name}
+                      onClick={() => toggleCharacterRef(img.name)}
+                      className={`relative cursor-pointer transition-all ${
+                        selectedCharacterRefs.includes(img.name)
+                          ? 'ring-2 ring-emerald-500 ring-offset-2 ring-offset-stone-900'
+                          : 'opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <img
+                        src={img.url}
+                        alt={img.name}
+                        className="w-14 h-14 object-cover rounded border border-stone-600"
+                      />
+                      <div className="absolute -bottom-1 -right-1 bg-cyan-900 text-[10px] text-cyan-300 px-1.5 py-0.5 rounded">
+                        CUSTOM
+                      </div>
+                      {selectedCharacterRefs.includes(img.name) && (
+                        <div className="absolute top-0 right-0 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center text-white text-[11px]">
+                          ✓
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
