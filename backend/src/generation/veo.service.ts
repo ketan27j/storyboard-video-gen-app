@@ -8,6 +8,7 @@ export class VeoService {
   async generateVideo(prompt: string, imagePath?: string): Promise<Buffer> {
     const projectId = process.env.GOOGLE_PROJECT_ID;
     const location = process.env.GOOGLE_LOCATION || 'us-central1';
+    const videoModel = process.env.VIDEO_GEN_MODEL || 'veo-3.1-fast-generate-001';
 
     this.logger.log(`Starting Veo 3 Fast video generation with prompt: ${prompt.substring(0, 100)}...`);
     this.logger.log(`Project ID: ${projectId}, Location: ${location}`);
@@ -29,7 +30,7 @@ export class VeoService {
       this.logger.log(`Token preview: ${token.substring(0, 20)}...`);
     }
 
-    const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/veo-3.1-fast-generate-preview:predictLongRunning`;
+    const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${videoModel}:predictLongRunning`;
     this.logger.log(`API endpoint: ${endpoint}`);
 
     const instance: any = { prompt };
@@ -109,7 +110,7 @@ export class VeoService {
       // Veo requires fetchPredictOperation (POST) — the generic GET /v1/{operationName}
       // returns 404 because Veo operation IDs are UUIDs, not numeric Longs.
       const pollRes = await fetch(
-        `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/veo-3.1-fast-generate-preview:fetchPredictOperation`,
+        `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${videoModel}:fetchPredictOperation`,
         {
           method: 'POST',
           headers: {
