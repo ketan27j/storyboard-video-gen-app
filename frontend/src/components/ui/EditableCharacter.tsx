@@ -207,17 +207,17 @@ export function EditableCharacter({
                 <button
                   onClick={handleImageClick}
                   disabled={isUploading}
-                  className="flex-1 py-2 px-3 text-xs font-bold rounded-lg bg-stone-700/50 hover:bg-stone-700 text-stone-300 border border-stone-600 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  className="flex-1 py-1.5 px-2 text-[10px] font-bold rounded-md bg-stone-700/50 hover:bg-stone-700 text-stone-300 border border-stone-600 transition-all flex items-center justify-center gap-1 disabled:opacity-50"
                 >
-                  <span>📁</span> Upload New
+                  <span>📁</span> Upload
                 </button>
                 {onGenerateImage && (
                   <button
                     onClick={onGenerateImage}
                     disabled={isGenerating}
-                    className="flex-1 py-2 px-3 text-xs font-bold rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 border border-cyan-600/50 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    className="flex-1 py-1.5 px-2 text-[10px] font-bold rounded-md bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 border border-cyan-600/50 transition-all flex items-center justify-center gap-1 disabled:opacity-50"
                   >
-                    <span>✨</span> Generate AI
+                    <span>✨</span> AI
                   </button>
                 )}
               </div>
@@ -243,11 +243,11 @@ export function EditableCharacter({
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             {/* Upload Area */}
             <div 
               onClick={handleImageClick}
-              className="relative rounded-xl border-2 border-dashed border-stone-600 hover:border-amber-500 hover:bg-amber-900/10 flex flex-col items-center justify-center h-36 cursor-pointer transition-all group"
+              className="relative rounded border border-dashed border-stone-700 hover:border-amber-500 hover:bg-amber-900/10 flex flex-col items-center justify-center h-12 cursor-pointer transition-all group"
             >
               <input
                 ref={fileInputRef}
@@ -257,15 +257,10 @@ export function EditableCharacter({
                 className="hidden"
                 disabled={isUploading}
               />
-              <div className="text-3xl text-stone-500 group-hover:text-amber-400 transition-colors mb-2">
-                📁
-              </div>
-              <p className="text-xs text-stone-400 group-hover:text-amber-400/80 text-center px-2">
-                Upload Reference Image
-              </p>
+              <span className="text-xs text-stone-400 group-hover:text-amber-400">📁 Upload</span>
               {isUploading && (
-                <div className="absolute inset-0 bg-stone-900/80 flex items-center justify-center rounded-xl">
-                  <div className="w-6 h-6 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin" />
+                <div className="absolute inset-0 bg-stone-900/80 flex items-center justify-center rounded">
+                  <div className="w-3 h-3 border border-amber-400/30 border-t-amber-400 rounded-full animate-spin" />
                 </div>
               )}
             </div>
@@ -273,17 +268,9 @@ export function EditableCharacter({
             {/* Generate Area */}
             <div 
               onClick={onGenerateImage}
-              className="relative rounded-xl border-2 border-dashed border-cyan-600/50 hover:border-cyan-500 hover:bg-cyan-900/10 flex flex-col items-center justify-center h-36 cursor-pointer transition-all group"
+              className="relative rounded border border-dashed border-cyan-700/50 hover:border-cyan-500 hover:bg-cyan-900/10 flex flex-col items-center justify-center h-12 cursor-pointer transition-all group"
             >
-              <div className="text-3xl text-stone-500 group-hover:text-cyan-400 transition-colors mb-2">
-                ✨
-              </div>
-              <p className="text-xs text-stone-400 group-hover:text-cyan-400/80 text-center px-2">
-                Generate with AI
-              </p>
-              <p className="text-[10px] text-stone-500 mt-1">
-                Based on description
-              </p>
+              <span className="text-xs text-stone-400 group-hover:text-cyan-400">✨ AI</span>
             </div>
           </div>
         )}
