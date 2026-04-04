@@ -165,6 +165,44 @@ export class PipelineController {
     };
   }
 
+  @Post(':id/upload-scene-image')
+  @HttpCode(HttpStatus.OK)
+  async uploadSceneImage(
+    @Param('id') sessionId: string,
+    @Body('sceneIndex') sceneIndex: number,
+    @Body('imageIndex') imageIndex: number,
+    @Body('imageData') imageData: string,
+  ) {
+    if (sceneIndex < 0 || imageIndex < 0 || !imageData) {
+      throw new BadRequestException('sceneIndex, imageIndex, and imageData are required');
+    }
+    
+    // Save scene image to session folder
+    const buffer = Buffer.from(imageData.split(',')[1], 'base64');
+    const filename = `scene_${sceneIndex + 1}_image_${imageIndex + 1}_custom.png`;
+    const storyDir = `output/images/${sessionId}/scenes`;
+    
+    // Create scenes directory if it doesn't exist
+    const fs = require('fs');
+    const path = require('path');
+    const fullPath = path.join(process.env.OUTPUT_DIR || './output', 'images', sessionId, 'scenes');
+    fs.mkdirSync(fullPath, { recursive: true });
+    
+    const filepath = path.join(fullPath, filename);
+    fs.writeFileSync(filepath, buffer);
+    
+    // Update pipeline state to track custom uploaded image
+    const url = `${storyDir}/${filename}`;
+    await this.pipelineService.uploadSceneImage(sessionId, sceneIndex, imageIndex, url);
+    
+    return { 
+      ok: true, 
+      url,
+      sceneIndex,
+      imageIndex
+    };
+  }
+
   @Post(':id/generate-video')
   @HttpCode(HttpStatus.ACCEPTED)
   async generateVideo(

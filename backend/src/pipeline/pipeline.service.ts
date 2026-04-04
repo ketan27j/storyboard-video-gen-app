@@ -145,6 +145,33 @@ export class PipelineService {
     await graph.updateState(config, { scenes });
   }
 
+  async uploadSceneImage(sessionId: string, sceneIndex: number, imageIndex: number, imageUrl: string): Promise<void> {
+    const graph = getPipelineGraph();
+    const config = { configurable: { thread_id: sessionId } };
+    
+    const currentState = await graph.getState(config);
+    if (!currentState?.values?.scenes) return;
+
+    const scenes = [...currentState.values.scenes];
+    if (!scenes[sceneIndex]) return;
+
+    const scene = { ...scenes[sceneIndex] };
+    const imageSequence = [...(scene.imageSequence || [])];
+    
+    if (imageSequence[imageIndex]) {
+      imageSequence[imageIndex] = {
+        ...imageSequence[imageIndex],
+        customUploadUrl: imageUrl,
+        status: 'done' as const
+      };
+    }
+    
+    scene.imageSequence = imageSequence;
+    scenes[sceneIndex] = scene;
+
+    await graph.updateState(config, { scenes });
+  }
+
   async updateCharacterDescription(sessionId: string, characterName: string, description: string): Promise<void> {
     const graph = getPipelineGraph();
     const config = { configurable: { thread_id: sessionId } };

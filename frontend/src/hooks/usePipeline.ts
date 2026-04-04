@@ -40,10 +40,10 @@ export function useApprovePlan() {
   const { sessionId, setLoading } = usePipelineStore();
 
   return useMutation({
-    mutationFn: (regenerate = false) =>
+    mutationFn: (variables: { regenerate?: boolean } = {}) =>
       apiFetch(`/api/pipeline/${sessionId}/approve-plan`, {
         method: 'POST',
-        body: JSON.stringify({ regenerate }),
+        body: JSON.stringify({ regenerate: variables.regenerate ?? false }),
       }),
     onSuccess: () => setLoading(true),
   });
@@ -53,10 +53,10 @@ export function useApproveScene() {
   const { sessionId, setLoading } = usePipelineStore();
 
   return useMutation({
-    mutationFn: ({ regenerate = false, skip = false } = {}) =>
+    mutationFn: (variables: { regenerate?: boolean; skip?: boolean } = {}) =>
       apiFetch(`/api/pipeline/${sessionId}/approve-scene`, {
         method: 'POST',
-        body: JSON.stringify({ regenerate, skip }),
+        body: JSON.stringify({ regenerate: variables.regenerate ?? false, skip: variables.skip ?? false }),
       }),
     onSuccess: () => setLoading(true),
   });
@@ -144,5 +144,42 @@ export function useGenerateReferenceImage() {
         method: 'POST',
         body: JSON.stringify({ prompt }),
       }),
+  });
+}
+
+export function useUploadSceneImage() {
+  const { sessionId, updateImageStatus } = usePipelineStore();
+
+  return useMutation({
+    mutationFn: ({
+      sceneIndex,
+      imageIndex,
+      imageData,
+    }: {
+      sceneIndex: number;
+      imageIndex: number;
+      imageData: string;
+    }) => {
+      // Optimistically update the UI
+      updateImageStatus(sceneIndex, imageIndex, { status: 'generating' });
+      return apiFetch(`/api/pipeline/${sessionId}/upload-scene-image`, {
+        method: 'POST',
+        body: JSON.stringify({ sceneIndex, imageIndex, imageData }),
+      });
+    },
+    onSuccess: (data, variables) => {
+      // Update with the uploaded image URL
+      const { sceneIndex, imageIndex } = variables;
+      updateImageStatus(sceneIndex, imageIndex, { 
+        status: 'done',
+        customUploadUrl: data.url 
+      });
+    },
+    onError: (error, variables) => {
+      // Revert to error state on failure
+      const { sceneIndex, imageIndex } = variables;
+      updateImageStatus(sceneIndex, imageIndex, { status: 'error' });
+      console.error('Upload failed:', error);
+    },
   });
 }

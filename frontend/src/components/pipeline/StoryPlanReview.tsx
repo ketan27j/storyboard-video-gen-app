@@ -245,7 +245,7 @@ export function StoryPlanReview() {
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-3 sticky bottom-6">
         <button
-          onClick={() => approvePlan.mutate()}
+          onClick={() => approvePlan.mutate({ regenerate: false })}
           disabled={isLoading || scenes.length === 0}
           className="flex-1 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:bg-stone-800 disabled:text-stone-600 text-black font-black text-sm tracking-widest uppercase transition-all flex items-center justify-center gap-2 disabled:cursor-not-allowed"
         >
@@ -259,7 +259,7 @@ export function StoryPlanReview() {
           )}
         </button>
         <button
-          onClick={() => approvePlan.mutate()}
+          onClick={() => approvePlan.mutate({ regenerate: true })}
           disabled={isLoading}
           className="sm:w-48 py-3.5 rounded-xl bg-black border border-stone-600 hover:border-stone-400 text-stone-400 hover:text-stone-200 font-bold text-sm tracking-widest uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >

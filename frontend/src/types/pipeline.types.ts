@@ -8,6 +8,7 @@ export interface ImageData {
   prompt: string;
   generatedUrl?: string;
   localPath?: string;
+  customUploadUrl?: string; // URL for user-uploaded custom image
   status: GenerationStatus;
 }
 

@@ -105,7 +105,14 @@ export class GenerationService {
       if (this.imageProvider === 'imagen') {
         // Get character reference images for this scene
         const characterRefs = await this.getCharacterReferenceImages(sessionId, sceneIndex);
+        // Get custom uploaded scene image if exists
+        const customSceneImage = await this.getCustomSceneImage(sessionId, sceneIndex, imageIndex);
         const allReferenceImages = [...(referenceImages || []), ...characterRefs];
+        
+        // If custom scene image exists, add it as primary reference
+        if (customSceneImage) {
+          allReferenceImages.unshift(customSceneImage);
+        }
         
         const refInputs = allReferenceImages?.map((b64) => ({ base64: b64 })) ?? undefined;
         const result = await this.imagenService.generateImage(prompt, refInputs);
@@ -113,7 +120,14 @@ export class GenerationService {
       } else if (this.imageProvider === 'imagen3') {
         // Get character reference images for this scene
         const characterRefs = await this.getCharacterReferenceImages(sessionId, sceneIndex);
+        // Get custom uploaded scene image if exists
+        const customSceneImage = await this.getCustomSceneImage(sessionId, sceneIndex, imageIndex);
         const allReferenceImages = [...(referenceImages || []), ...characterRefs];
+        
+        // If custom scene image exists, add it as primary reference
+        if (customSceneImage) {
+          allReferenceImages.unshift(customSceneImage);
+        }
         
         const refInputs = allReferenceImages?.map((b64) => ({ base64: b64 })) ?? undefined;
         const result = await this.imagenService.generateImage(prompt, refInputs);
@@ -206,6 +220,29 @@ export class GenerationService {
     } catch (error) {
       this.logger.error(`Failed to get character reference images: ${error.message}`);
       return [];
+    }
+  }
+
+  private async getCustomSceneImage(sessionId: string, sceneIndex: number, imageIndex: number): Promise<string | null> {
+    try {
+      const outputDir = this.storageService.getOutputDir();
+      const scenesDir = `${outputDir}/images/${sessionId}/scenes`;
+      
+      // Look for custom uploaded scene image
+      const filename = `scene_${sceneIndex + 1}_image_${imageIndex + 1}_custom.png`;
+      const imagePath = `${scenesDir}/${filename}`;
+      
+      if (require('fs').existsSync(imagePath)) {
+        const imageBuffer = require('fs').readFileSync(imagePath);
+        const base64Image = imageBuffer.toString('base64');
+        this.logger.log(`Found custom scene image for scene ${sceneIndex + 1}, image ${imageIndex + 1}`);
+        return base64Image;
+      }
+      
+      return null;
+    } catch (error) {
+      this.logger.warn(`Failed to get custom scene image: ${error.message}`);
+      return null;
     }
   }
 
