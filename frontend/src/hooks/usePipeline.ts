@@ -160,8 +160,7 @@ export function useUploadSceneImage() {
       imageIndex: number;
       imageData: string;
     }) => {
-      // Optimistically update the UI
-      updateImageStatus(sceneIndex, imageIndex, { status: 'generating' });
+      // Do NOT change image generation status on custom upload
       return apiFetch(`/api/pipeline/${sessionId}/upload-scene-image`, {
         method: 'POST',
         body: JSON.stringify({ sceneIndex, imageIndex, imageData }),
@@ -171,14 +170,11 @@ export function useUploadSceneImage() {
       // Update with the uploaded image URL
       const { sceneIndex, imageIndex } = variables;
       updateImageStatus(sceneIndex, imageIndex, { 
-        status: 'done',
         customUploadUrl: data.url 
       });
     },
-    onError: (error, variables) => {
-      // Revert to error state on failure
-      const { sceneIndex, imageIndex } = variables;
-      updateImageStatus(sceneIndex, imageIndex, { status: 'error' });
+    onError: (error) => {
+      // Do NOT change image generation status on upload failure
       console.error('Upload failed:', error);
     },
   });

@@ -1,7 +1,7 @@
 # Custom Scene Image Upload Feature
 
 ## Overview
-Added functionality to upload custom images for each scene in the SCENE WORKSHOP. These custom images are passed to the image generation API as reference images and take priority over generated images in the UI.
+Added functionality to upload custom images for each scene in the SCENE WORKSHOP. These custom images are passed to the image generation API as reference images. This image will be shown in 'REFERENCE IMAGES' section and should have select/unselect option.
 
 ## Implementation Details
 

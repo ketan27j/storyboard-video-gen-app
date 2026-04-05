@@ -47,30 +47,32 @@ export function ImagePromptCard({ image, sceneIndex, imageIndex }: ImagePromptCa
           : `${API_URL}/${img.localPath}`,
       type: 'scene' as const
     }));
-  
-  // Determine which image to display (custom upload takes priority over generated)
+
+  // Custom uploaded image is ONLY a reference image - NOT an output
   const customImgSrc = image.customUploadUrl
     ? image.customUploadUrl.startsWith('http')
       ? image.customUploadUrl
       : `${API_URL}/${image.customUploadUrl}`
     : null;
+    
+  const customReferenceImage = customImgSrc ? [{
+    name: 'Custom Upload',
+    url: customImgSrc,
+    type: 'custom' as const
+  }] : [];
+
+  // Output image is ONLY the generated image
   const imgSrc = image.generatedUrl
     ? image.generatedUrl.startsWith('http')
       ? image.generatedUrl
       : `${API_URL}/${image.generatedUrl}`
     : null;
-  const displayImgSrc = customImgSrc || imgSrc;
+
+  const displayImgSrc = imgSrc;
   const hasCustomImage = !!customImgSrc;
   
-  // Add custom uploaded image as a reference option
-  const customImageRef = hasCustomImage ? [{
-    name: 'Custom Upload',
-    url: customImgSrc,
-    type: 'custom' as const
-  }] : [];
-  
-  // Combine all reference images
-  const allRefImages = [...characterRefImages, ...sceneGeneratedImages, ...customImageRef];
+  // Combine all reference images including custom upload
+  const allRefImages = [...customReferenceImage, ...characterRefImages, ...sceneGeneratedImages];
 
   useEffect(() => {
     setLocalPrompt(image.prompt);
@@ -158,20 +160,22 @@ export function ImagePromptCard({ image, sceneIndex, imageIndex }: ImagePromptCa
       </div>
 
       {/* Prompt */}
-      <div className="px-4 py-3">
-        <textarea
-          value={localPrompt}
-          onChange={(e) => {
-            setLocalPrompt(e.target.value);
-            setPromptChanged(e.target.value !== image.prompt);
-          }}
-          onBlur={handleBlur}
-          className="w-full text-xs font-mono text-stone-400 leading-relaxed bg-stone-900/50 border border-stone-700/50 rounded-lg p-2 resize-y focus:outline-none focus:border-amber-500/50"
-          rows={3}
-        />
-      </div>
+      {true && (
+        <div className="px-4 py-3">
+          <textarea
+            value={localPrompt}
+            onChange={(e) => {
+              setLocalPrompt(e.target.value);
+              setPromptChanged(e.target.value !== image.prompt);
+            }}
+            onBlur={handleBlur}
+            className="w-full text-xs font-mono text-stone-400 leading-relaxed bg-stone-900/50 border border-stone-700/50 rounded-lg p-2 resize-y focus:outline-none focus:border-amber-500/50"
+            rows={3}
+          />
+        </div>
+      )}
 
-      {/* Reference Images Selector (Characters + Scene Images) - Always Visible */}
+      {/* Reference Images Selector */}
       {allRefImages.length > 0 && (
         <div className="px-4 pb-2">
           <div className="flex items-center gap-2 mb-3">
@@ -184,6 +188,40 @@ export function ImagePromptCard({ image, sceneIndex, imageIndex }: ImagePromptCa
           </div>
           
           <div className="space-y-3">
+            {/* Custom Upload Reference */}
+            {customReferenceImage.length > 0 && (
+              <div>
+                <p className="text-[10px] font-mono text-stone-500 mb-2 uppercase tracking-wide">Custom Upload</p>
+                <div className="flex flex-wrap gap-2 p-2 bg-stone-800/30 rounded-lg border border-stone-700/30">
+                  {customReferenceImage.map((img) => (
+                    <div
+                      key={img.name}
+                      onClick={() => toggleCharacterRef(img.name)}
+                      className={`relative cursor-pointer transition-all ${
+                        selectedCharacterRefs.includes(img.name)
+                          ? 'ring-2 ring-cyan-500 ring-offset-2 ring-offset-stone-900'
+                          : 'opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <img
+                        src={img.url}
+                        alt={img.name}
+                        className="w-14 h-14 object-cover rounded border border-cyan-600/50"
+                      />
+                      <div className="absolute -bottom-1 -right-1 bg-stone-900 text-[10px] text-stone-300 px-1.5 py-0.5 rounded">
+                        {img.name}
+                      </div>
+                      {selectedCharacterRefs.includes(img.name) && (
+                        <div className="absolute top-0 right-0 w-5 h-5 bg-cyan-500 rounded-full flex items-center justify-center text-white text-[11px]">
+                          ✓
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             {/* Character References */}
             {characterRefImages.length > 0 && (
               <div>
@@ -252,45 +290,33 @@ export function ImagePromptCard({ image, sceneIndex, imageIndex }: ImagePromptCa
               </div>
             )}
             
-            {/* Custom Uploaded Image */}
-            {customImageRef.length > 0 && (
-              <div>
-                <p className="text-[10px] font-mono text-stone-500 mb-2 uppercase tracking-wide">Custom Upload</p>
-                <div className="flex flex-wrap gap-2 p-2 bg-stone-800/30 rounded-lg border border-stone-700/30">
-                  {customImageRef.map((img) => (
-                    <div
-                      key={img.name}
-                      onClick={() => toggleCharacterRef(img.name)}
-                      className={`relative cursor-pointer transition-all ${
-                        selectedCharacterRefs.includes(img.name)
-                          ? 'ring-2 ring-emerald-500 ring-offset-2 ring-offset-stone-900'
-                          : 'opacity-70 hover:opacity-100'
-                      }`}
-                    >
-                      <img
-                        src={img.url}
-                        alt={img.name}
-                        className="w-14 h-14 object-cover rounded border border-stone-600"
-                      />
-                      <div className="absolute -bottom-1 -right-1 bg-cyan-900 text-[10px] text-cyan-300 px-1.5 py-0.5 rounded">
-                        CUSTOM
-                      </div>
-                      {selectedCharacterRefs.includes(img.name) && (
-                        <div className="absolute top-0 right-0 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center text-white text-[11px]">
-                          ✓
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}
 
-      {/* Custom Image Upload - Integrated into Reference Images */}
-      <div className="px-4 pb-2">
+      {/* Generated Output Image - ONLY this appears in output box */}
+      {displayImgSrc && (
+        <div className="px-4 pt-2 pb-2">
+          <div
+            className="relative rounded-lg overflow-hidden cursor-pointer group"
+            onClick={() => setExpanded(true)}
+          >
+            <img
+              src={displayImgSrc}
+              alt={image.label}
+              className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+              <span className="opacity-0 group-hover:opacity-100 text-white text-xs font-mono tracking-widest transition-opacity">
+                EXPAND ↗
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Image Upload Button */}
+      <div className="px-4 pb-4">
         <input
           ref={fileInputRef}
           type="file"
@@ -301,7 +327,7 @@ export function ImagePromptCard({ image, sceneIndex, imageIndex }: ImagePromptCa
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={uploadSceneImage.isPending}
-          className="w-full py-2 rounded-lg text-xs font-mono tracking-widest border border-stone-600/50 hover:border-cyan-500/50 text-stone-400 hover:text-cyan-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 bg-stone-800/20 mb-3"
+          className="w-full py-2 rounded-lg text-xs font-mono tracking-widest border border-stone-600/50 hover:border-cyan-500/50 text-stone-400 hover:text-cyan-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 bg-stone-800/20"
         >
           {uploadSceneImage.isPending ? (
             <>
@@ -322,32 +348,6 @@ export function ImagePromptCard({ image, sceneIndex, imageIndex }: ImagePromptCa
         </button>
       </div>
 
-      {/* Display image (custom or generated) */}
-      {displayImgSrc && (
-        <div className="px-4 pb-3">
-          <div
-            className="relative rounded-lg overflow-hidden cursor-pointer group"
-            onClick={() => setExpanded(true)}
-          >
-            <img
-              src={displayImgSrc}
-              alt={image.label}
-              className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-            {hasCustomImage && (
-              <div className="absolute top-2 left-2 bg-cyan-600/90 text-white text-[10px] font-mono px-2 py-1 rounded">
-                CUSTOM
-              </div>
-            )}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-              <span className="opacity-0 group-hover:opacity-100 text-white text-xs font-mono tracking-widest transition-opacity">
-                EXPAND ↗
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Spinner while generating/uploading */}
       {(image.status === 'generating' || uploadSceneImage.isPending) && !displayImgSrc && (
         <div className="px-4 pb-4 flex items-center gap-3">
@@ -359,30 +359,32 @@ export function ImagePromptCard({ image, sceneIndex, imageIndex }: ImagePromptCa
       )}
 
       {/* Generate/Regenerate button */}
-      <div className="px-4 pb-4">
-        <button
-          onClick={handleGenerate}
-          disabled={image.status === 'generating'}
-          className={`w-full py-2 rounded-lg text-xs font-mono tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-            isRegenerate
-              ? 'bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-600/50 text-cyan-400'
-              : 'bg-amber-600/20 hover:bg-amber-600/30 border border-amber-600/50 text-amber-400'
-          }`}
-        >
-          {image.status === 'generating' ? (
-            <>
-              <div className="w-3 h-3 border border-current/30 border-t-current rounded-full animate-spin" />
-              GENERATING…
-            </>
-          ) : isRegenerate ? (
-            '🔄 REGENERATE (Prompt Changed)'
-          ) : hasGeneratedImage ? (
-            '🔄 REGENERATE'
-          ) : (
-            '🎨 GENERATE IMAGE'
-          )}
-        </button>
-      </div>
+      {true && (
+        <div className="px-4 pb-4">
+          <button
+            onClick={handleGenerate}
+            disabled={image.status === 'generating'}
+            className={`w-full py-2 rounded-lg text-xs font-mono tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+              isRegenerate
+                ? 'bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-600/50 text-cyan-400'
+                : 'bg-amber-600/20 hover:bg-amber-600/30 border border-amber-600/50 text-amber-400'
+            }`}
+          >
+            {image.status === 'generating' ? (
+              <>
+                <div className="w-3 h-3 border border-current/30 border-t-current rounded-full animate-spin" />
+                GENERATING…
+              </>
+            ) : isRegenerate ? (
+              '🔄 REGENERATE (Prompt Changed)'
+            ) : hasGeneratedImage ? (
+              '🔄 REGENERATE'
+            ) : (
+              '🎨 GENERATE IMAGE'
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Expanded modal */}
       {expanded && displayImgSrc && (

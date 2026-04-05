@@ -161,8 +161,7 @@ export class PipelineService {
     if (imageSequence[imageIndex]) {
       imageSequence[imageIndex] = {
         ...imageSequence[imageIndex],
-        customUploadUrl: imageUrl,
-        status: 'done' as const
+        customUploadUrl: imageUrl
       };
     }
     
