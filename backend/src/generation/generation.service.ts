@@ -102,7 +102,7 @@ export class GenerationService {
 
       let buffer: Buffer;
 
-      if (this.imageProvider === 'imagen') {
+      if (this.imageProvider === 'nanobanana') {
         // Get character reference images for this scene (already base64)
         const characterRefs = await this.getCharacterReferenceImages(sessionId, sceneIndex);
         // Get custom uploaded scene image if exists (already base64)
@@ -125,35 +125,6 @@ export class GenerationService {
         const refInputs = limitedRefImages.map((b64) => ({ base64: b64 }));
         const result = await this.imagenService.generateImage(prompt, refInputs);
         buffer = result.imageBuffer;
-      } else if (this.imageProvider === 'imagen3') {
-        // Get character reference images for this scene (already base64)
-        const characterRefs = await this.getCharacterReferenceImages(sessionId, sceneIndex);
-        // Get custom uploaded scene image if exists (already base64)
-        const customSceneImage = await this.getCustomSceneImage(sessionId, sceneIndex, imageIndex);
-        
-        // Convert URL-based reference images from frontend to base64
-        const convertedRefImages = await this.convertReferenceImagesToBase64(referenceImages || []);
-        
-        // Combine all reference images: frontend URLs (converted) + character refs
-        const allReferenceImages = [...convertedRefImages, ...characterRefs];
-        
-        // If custom scene image exists, add it as primary reference
-        if (customSceneImage) {
-          allReferenceImages.unshift(customSceneImage);
-        }
-        
-        // Limit to max 3 reference images (Gemini 2.5 Flash Image limit)
-        const limitedRefImages = allReferenceImages.slice(0, 3);
-        
-        const refInputs = limitedRefImages.map((b64) => ({ base64: b64 }));
-        const result = await this.imagenService.generateImage(prompt, refInputs);
-        buffer = result.imageBuffer;
-      } else if (this.imageProvider === 'leonardo') {
-        buffer = await this.grokService.generateImage(prompt);
-      } else if (this.imageProvider === 'chatgpt') {
-        const result = await this.chatGptService.generateImage(prompt, referenceImages);
-        // Read the generated image file
-        buffer = require('fs').readFileSync(result.imagePath);
       } else {
         // Manual / mock mode — generate a placeholder image
         buffer = await this.generatePlaceholderImage(prompt);
