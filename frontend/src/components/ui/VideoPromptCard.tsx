@@ -96,27 +96,27 @@ export function VideoPromptCard({ video, scene, sceneIndex, videoIndex }: VideoP
         </div>
       )}
 
-      {video.status !== 'done' && (
-        <div className="px-4 pb-4">
-          <button
-            onClick={handleGenerate}
-            disabled={video.status === 'generating' || !sourceImageReady}
-            title={!sourceImageReady ? 'Generate source image first' : undefined}
-            className="w-full py-2 rounded-lg border border-cyan-700/50 text-cyan-400 text-xs font-mono tracking-widest hover:bg-cyan-950/40 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {video.status === 'generating' ? (
-              <>
-                <div className="w-3 h-3 border border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
-                GENERATING…
-              </>
-            ) : !sourceImageReady ? (
-              '🔒 GENERATE IMAGE FIRST'
-            ) : (
-              '🎬 GENERATE VIDEO'
-            )}
-          </button>
-        </div>
-      )}
+      <div className="px-4 pb-4">
+        <button
+          onClick={handleGenerate}
+          disabled={video.status === 'generating' || !sourceImageReady}
+          title={!sourceImageReady ? 'Generate source image first' : undefined}
+          className="w-full py-2 rounded-lg border border-cyan-700/50 text-cyan-400 text-xs font-mono tracking-widest hover:bg-cyan-950/40 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {video.status === 'generating' ? (
+            <>
+              <div className="w-3 h-3 border border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
+              GENERATING…
+            </>
+          ) : !sourceImageReady ? (
+            '🔒 GENERATE IMAGE FIRST'
+          ) : video.status === 'done' ? (
+            '🔄 REGENERATE VIDEO'
+          ) : (
+            '🎬 GENERATE VIDEO'
+          )}
+        </button>
+      </div>
     </div>
   );
 }
