@@ -163,7 +163,7 @@ export function SceneWorkshop() {
       <div className="flex flex-col sm:flex-row items-center gap-3 sticky bottom-6">
         {safeSceneIndex > 0 && (
           <button
-            className="sm:w-32 py-3 rounded-xl border border-stone-700 hover:border-stone-500 text-stone-400 hover:text-stone-200 text-sm font-bold tracking-widest uppercase transition-all"
+            className="sm:w-32 py-3 rounded-xl bg-black border border-stone-700 hover:border-stone-500 text-stone-400 hover:text-stone-200 text-sm font-bold tracking-widest uppercase transition-all"
             onClick={() => {
               // Navigate to previous scene
               usePipelineStore.setState({
@@ -178,7 +178,7 @@ export function SceneWorkshop() {
         <button
           onClick={() => approveScene.mutate({ skip: true })}
           disabled={isLoading}
-          className="sm:w-32 py-3 rounded-xl border border-stone-700 hover:border-stone-500 text-stone-500 hover:text-stone-300 text-sm font-bold tracking-widest uppercase transition-all disabled:opacity-40"
+           className="sm:w-32 py-3 rounded-xl bg-black border border-stone-700 hover:border-stone-500 text-stone-500 hover:text-stone-300 text-sm font-bold tracking-widest uppercase transition-all disabled:opacity-40"
         >
           ⏭ SKIP
         </button>
@@ -202,7 +202,7 @@ export function SceneWorkshop() {
 
         {safeSceneIndex + 1 < totalScenes && (
           <button
-            className="sm:w-32 py-3 rounded-xl border border-stone-700 hover:border-stone-500 text-stone-400 hover:text-stone-200 text-sm font-bold tracking-widest uppercase transition-all"
+            className="sm:w-32 py-3 rounded-xl bg-black border border-stone-700 hover:border-stone-500 text-stone-400 hover:text-stone-200 text-sm font-bold tracking-widest uppercase transition-all"
             onClick={() => {
               usePipelineStore.setState({ currentSceneIndex: safeSceneIndex + 1 });
             }}
