@@ -1,4 +1,4 @@
-export type Screen = 'idea' | 'plan' | 'workshop' | 'gallery';
+export type Screen = 'idea' | 'plan' | 'workshop' | 'gallery' | 'history';
 
 export type GenerationStatus = 'pending' | 'generating' | 'done' | 'error';
 
@@ -8,6 +8,7 @@ export interface ImageData {
   prompt: string;
   generatedUrl?: string;
   localPath?: string;
+  url?: string;
   customUploadUrl?: string; // URL for user-uploaded custom image
   status: GenerationStatus;
 }
@@ -19,6 +20,7 @@ export interface VideoData {
   optimizedPrompt?: string;
   generatedUrl?: string;
   localPath?: string;
+  url?: string;
   status: GenerationStatus;
 }
 

@@ -9,7 +9,8 @@ export function SceneWorkshop() {
   const { scenes, currentSceneIndex, isLoading } = usePipelineStore();
   const approveScene = useApproveScene();
 
-  const scene = scenes[currentSceneIndex];
+  const safeSceneIndex = Math.min(currentSceneIndex, Math.max(0, scenes.length - 1));
+  const scene = scenes[safeSceneIndex];
   const totalScenes = scenes.length;
 
   if (!scene) {
@@ -30,9 +31,9 @@ export function SceneWorkshop() {
       {/* Progress */}
       <div className="mb-6">
         <PipelineProgress
-          current={currentSceneIndex + 1}
+          current={safeSceneIndex + 1}
           total={totalScenes}
-          label={`Scene ${currentSceneIndex + 1} of ${totalScenes}`}
+          label={`Scene ${safeSceneIndex + 1} of ${totalScenes}`}
         />
       </div>
 
@@ -119,7 +120,7 @@ export function SceneWorkshop() {
                   <ImagePromptCard
                     key={imgIdx}
                     image={img}
-                    sceneIndex={currentSceneIndex}
+                    sceneIndex={safeSceneIndex}
                     imageIndex={imgIdx}
                   />
                 ))}
@@ -139,7 +140,7 @@ export function SceneWorkshop() {
                     key={vidIdx}
                     video={vid}
                     scene={scene}
-                    sceneIndex={currentSceneIndex}
+                    sceneIndex={safeSceneIndex}
                     videoIndex={vidIdx}
                   />
                 ))}
@@ -160,10 +161,15 @@ export function SceneWorkshop() {
 
       {/* Navigation */}
       <div className="flex flex-col sm:flex-row items-center gap-3 sticky bottom-6">
-        {currentSceneIndex > 0 && (
+        {safeSceneIndex > 0 && (
           <button
             className="sm:w-32 py-3 rounded-xl border border-stone-700 hover:border-stone-500 text-stone-400 hover:text-stone-200 text-sm font-bold tracking-widest uppercase transition-all"
-            onClick={() => {/* prev scene handled by state */}}
+            onClick={() => {
+              // Navigate to previous scene
+              usePipelineStore.setState({
+                currentSceneIndex: safeSceneIndex - 1
+              });
+            }}
           >
             ← PREV
           </button>
@@ -187,12 +193,23 @@ export function SceneWorkshop() {
               <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
               PROCESSING…
             </>
-          ) : currentSceneIndex + 1 >= totalScenes ? (
+          ) : safeSceneIndex + 1 >= totalScenes ? (
             '✅ FINISH →'
           ) : (
             '✅ APPROVE & NEXT →'
           )}
         </button>
+
+        {safeSceneIndex + 1 < totalScenes && (
+          <button
+            className="sm:w-32 py-3 rounded-xl border border-stone-700 hover:border-stone-500 text-stone-400 hover:text-stone-200 text-sm font-bold tracking-widest uppercase transition-all"
+            onClick={() => {
+              usePipelineStore.setState({ currentSceneIndex: safeSceneIndex + 1 });
+            }}
+          >
+            NEXT →
+          </button>
+        )}
       </div>
     </div>
   );

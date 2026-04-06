@@ -39,6 +39,7 @@ interface PipelineStore {
   updateFromBackend: (state: Partial<PipelineStore>) => void;
   updateImageStatus: (sceneIdx: number, imgIdx: number, data: Partial<ImageData>) => void;
   updateVideoStatus: (sceneIdx: number, vidIdx: number, data: Partial<VideoData>) => void;
+  setState: (state: Partial<PipelineStore>) => void;
   reset: () => void;
 }
 
@@ -72,6 +73,8 @@ export const usePipelineStore = create<PipelineStore>((set) => ({
   })),
 
   updateFromBackend: (state) => set((prev) => ({ ...prev, ...state })),
+  
+  setState: (state) => set((prev) => ({ ...prev, ...state })),
 
   updateImageStatus: (sceneIdx, imgIdx, data) =>
     set((state) => {

@@ -42,10 +42,10 @@ export function VideoPromptCard({ video, scene, sceneIndex, videoIndex }: VideoP
     });
   };
 
-  const videoSrc = video.generatedUrl
-    ? video.generatedUrl.startsWith('http')
-      ? video.generatedUrl
-      : `${API_URL}/${video.generatedUrl}`
+  const videoSrc = video.generatedUrl || video.localPath
+    ? (video.generatedUrl || video.localPath)?.startsWith('http')
+      ? (video.generatedUrl || video.localPath)
+      : `${API_URL}/${(video.generatedUrl || video.localPath)}`
     : null;
 
   return (

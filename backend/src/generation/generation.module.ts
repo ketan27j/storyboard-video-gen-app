@@ -9,6 +9,7 @@ import { StorageModule } from '../storage/storage.module';
 import { ImageProcessor } from '../jobs/image.processor';
 import { VideoProcessor } from '../jobs/video.processor';
 import { PipelineModule } from '../pipeline/pipeline.module';
+import { DatabaseModule } from '../database/database.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { PipelineModule } from '../pipeline/pipeline.module';
       { name: 'video-generation' },
     ),
     StorageModule,
+    DatabaseModule,
     forwardRef(() => PipelineModule),
   ],
   providers: [

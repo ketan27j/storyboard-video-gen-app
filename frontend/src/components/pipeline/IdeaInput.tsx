@@ -55,9 +55,15 @@ export function IdeaInput() {
             </div>
             <span className="text-2xl font-black tracking-tight text-white">STORYBOARD AI</span>
           </div>
-          <p className="text-stone-400 text-sm font-mono tracking-widest">
+          <p className="text-stone-400 text-sm font-mono tracking-widest mb-2">
             FROM IDEA TO STORYBOARD IN MINUTES
           </p>
+          <button
+            onClick={() => usePipelineStore.getState().setScreen('history')}
+            className="text-xs text-stone-500 hover:text-stone-400 font-mono underline underline-offset-2"
+          >
+            📜 View History
+          </button>
         </div>
 
         {/* Main heading */}

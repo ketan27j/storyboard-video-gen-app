@@ -62,10 +62,10 @@ export function ImagePromptCard({ image, sceneIndex, imageIndex }: ImagePromptCa
   }] : [];
 
   // Output image is ONLY the generated image
-  const imgSrc = image.generatedUrl
-    ? image.generatedUrl.startsWith('http')
-      ? image.generatedUrl
-      : `${API_URL}/${image.generatedUrl}`
+  const imgSrc = image.generatedUrl || image.localPath || image.url
+    ? (image.generatedUrl || image.localPath || image.url)?.startsWith('http')
+      ? (image.generatedUrl || image.localPath || image.url)
+      : `${API_URL}/${(image.generatedUrl || image.localPath || image.url)}`
     : null;
 
   const displayImgSrc = imgSrc;

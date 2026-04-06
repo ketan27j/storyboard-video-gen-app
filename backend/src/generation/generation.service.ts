@@ -7,6 +7,7 @@ import { GrokService } from './grok.service';
 import { ChatGptService } from './chatgpt.service';
 import { StorageService } from '../storage/storage.service';
 import { PipelineGateway } from '../pipeline/pipeline.gateway';
+import { DatabaseService } from '../database/database.service';
 
 @Injectable()
 export class GenerationService {
@@ -23,6 +24,7 @@ export class GenerationService {
     private readonly chatGptService: ChatGptService,
     private readonly storageService: StorageService,
     private readonly gateway: PipelineGateway,
+    private readonly databaseService: DatabaseService,
   ) {}
 
   async queueImageGeneration(
@@ -131,6 +133,21 @@ export class GenerationService {
       }
 
       const url = await this.storageService.saveImage(buffer, sessionId, sceneIndex, imageIndex);
+      
+      // Update session in database with completed image
+      await this.databaseService.updateSession(sessionId, (session) => {
+        const scenes = [...(session.scenes || [])];
+        if (scenes[sceneIndex] && scenes[sceneIndex].imageSequence && scenes[sceneIndex].imageSequence[imageIndex]) {
+          scenes[sceneIndex].imageSequence[imageIndex] = {
+            ...scenes[sceneIndex].imageSequence[imageIndex],
+            status: 'done',
+            url: url,
+            generatedUrl: url
+          };
+        }
+        return { scenes };
+      });
+      
       this.gateway.emitImageProgress(sessionId, sceneIndex, imageIndex, 'done', url);
       this.logger.log(`Image done: ${url}`);
     } catch (err) {
@@ -164,6 +181,21 @@ export class GenerationService {
       }
 
       const url = await this.storageService.saveVideo(buffer, sessionId, sceneIndex, videoIndex);
+      
+      // Update session in database with completed video
+      await this.databaseService.updateSession(sessionId, (session) => {
+        const scenes = [...(session.scenes || [])];
+        if (scenes[sceneIndex] && scenes[sceneIndex].videoMotionPrompts && scenes[sceneIndex].videoMotionPrompts[videoIndex]) {
+          scenes[sceneIndex].videoMotionPrompts[videoIndex] = {
+            ...scenes[sceneIndex].videoMotionPrompts[videoIndex],
+            status: 'done',
+            url: url,
+            generatedUrl: url
+          };
+        }
+        return { scenes };
+      });
+      
       this.gateway.emitVideoProgress(sessionId, sceneIndex, videoIndex, 'done', url);
       this.logger.log(`Video done: ${url}`);
     } catch (err) {

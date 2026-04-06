@@ -4,6 +4,7 @@ import { BullModule } from '@nestjs/bull';
 import { PipelineModule } from './pipeline/pipeline.module';
 import { GenerationModule } from './generation/generation.module';
 import { StorageModule } from './storage/storage.module';
+import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { StorageModule } from './storage/storage.module';
         port: parseInt(process.env.REDIS_PORT || '6379', 10),
       },
     }),
+    DatabaseModule,
     PipelineModule,
     GenerationModule,
     StorageModule,

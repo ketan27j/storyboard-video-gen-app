@@ -8,15 +8,18 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
+  Delete,
 } from '@nestjs/common';
 import { PipelineService } from './pipeline.service';
 import { GenerationService } from '../generation/generation.service';
+import { DatabaseService } from '../database/database.service';
 
 @Controller('api/pipeline')
 export class PipelineController {
   constructor(
     private readonly pipelineService: PipelineService,
     private readonly generationService: GenerationService,
+    private readonly databaseService: DatabaseService,
   ) {}
 
   @Post('start')
@@ -266,5 +269,28 @@ export class PipelineController {
     }
 
     return { files };
+  }
+
+  @Get('history/list')
+  @HttpCode(HttpStatus.OK)
+  async listHistory() {
+    return this.databaseService.listSessions();
+  }
+
+  @Get('history/:id')
+  @HttpCode(HttpStatus.OK)
+  async loadHistorySession(@Param('id') sessionId: string) {
+    const session = await this.databaseService.getSession(sessionId);
+    if (!session) {
+      throw new BadRequestException('Session not found');
+    }
+    return session;
+  }
+
+  @Delete('history/:id')
+  @HttpCode(HttpStatus.OK)
+  async deleteHistorySession(@Param('id') sessionId: string) {
+    await this.databaseService.deleteSession(sessionId);
+    return { ok: true };
   }
 }

@@ -15,6 +15,25 @@ export function StoryPlanReview() {
 
   const characterEntries = Object.entries(characterDefinitions);
 
+  // Sync uploadedCharacterImages from scenes' characterReferenceImages (e.g., when loading from history)
+  useEffect(() => {
+    if (scenes.length === 0) return;
+    // Collect all character reference images from scenes
+    const refImages: Record<string, string> = {};
+    for (const scene of scenes) {
+      if (scene.characterReferenceImages) {
+        for (const [charName, url] of Object.entries(scene.characterReferenceImages)) {
+          if (url && !refImages[charName]) {
+            refImages[charName] = url as string;
+          }
+        }
+      }
+    }
+    if (Object.keys(refImages).length > 0) {
+      setUploadedCharacterImages(prev => ({ ...refImages, ...prev }));
+    }
+  }, [scenes]);
+
   // Listen for character image generation progress via custom event
   useEffect(() => {
     const handleCharacterImageProgress = (event: CustomEvent) => {

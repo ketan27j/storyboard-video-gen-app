@@ -5,6 +5,7 @@ import { IdeaInput } from '../components/pipeline/IdeaInput';
 import { StoryPlanReview } from '../components/pipeline/StoryPlanReview';
 import { SceneWorkshop } from '../components/pipeline/SceneWorkshop';
 import { ExportGallery } from '../components/pipeline/ExportGallery';
+import { HistoryPage } from '../components/pipeline/HistoryPage';
 import { Screen } from '../types/pipeline.types';
 
 const SCREEN_LABELS: Record<string, string> = {
@@ -14,7 +15,7 @@ const SCREEN_LABELS: Record<string, string> = {
   gallery: 'GALLERY',
 };
 
-const SCREENS: Screen[] = ['idea', 'plan', 'workshop', 'gallery'];
+const SCREENS: Screen[] = ['idea', 'plan', 'workshop', 'gallery', 'history'];
 
 export function StoryboardPage() {
   const { screen, sessionId, setScreen } = usePipelineStore();
@@ -78,6 +79,7 @@ export function StoryboardPage() {
         {screen === 'plan' && <StoryPlanReview />}
         {screen === 'workshop' && <SceneWorkshop />}
         {screen === 'gallery' && <ExportGallery />}
+        {screen === 'history' && <HistoryPage />}
       </div>
     </div>
   );

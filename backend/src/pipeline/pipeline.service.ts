@@ -1,13 +1,17 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { getPipelineGraph } from './graph/pipeline.graph';
 import { PipelineGateway } from './pipeline.gateway';
+import { DatabaseService } from '../database/database.service';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class PipelineService {
   private readonly logger = new Logger(PipelineService.name);
 
-  constructor(private readonly gateway: PipelineGateway) {}
+  constructor(
+    private readonly gateway: PipelineGateway,
+    private readonly databaseService: DatabaseService,
+  ) {}
 
   async startPipeline(movieIdea: string): Promise<{ sessionId: string }> {
     const sessionId = uuidv4();
@@ -16,6 +20,9 @@ export class PipelineService {
 
     this.logger.log(`Starting pipeline for session ${sessionId}`);
     this.gateway.emitStatus(sessionId, 'running');
+
+    // Save initial session to database
+    await this.databaseService.saveSession(sessionId, { movieIdea, sessionId });
 
     // Run graph async — it will interrupt at human_approve_plan
     this.runGraph(sessionId, { movieIdea, sessionId }, config).catch((err) => {
@@ -261,12 +268,22 @@ export class PipelineService {
     const graph = getPipelineGraph();
 
     try {
+      let fullState: any = {};
+      
       for await (const event of await graph.stream(input, {
         ...config,
         streamMode: 'values',
       })) {
         this.logger.debug(`Graph event for ${sessionId}: ${JSON.stringify(Object.keys(event))}`);
         this.gateway.emitStateUpdate(sessionId, event);
+        
+        // Merge partial event into full state
+        fullState = { ...fullState, ...event };
+        
+        // Persist complete state to database
+        if (typeof event === 'object' && !Buffer.isBuffer(event)) {
+          await this.databaseService.saveSession(sessionId, fullState);
+        }
       }
 
       // Check if we've hit an interrupt
