@@ -53,7 +53,7 @@ This application gives filmmakers, animators, and creators a guided AI pipeline 
 │                       NESTJS BACKEND                                │
 │  PipelineController → PipelineService → LangGraph Pipeline          │
 │  PipelineGateway (Socket.io) ← real-time events                    │
-│  GenerationService → [Imagen 3 API | Grok Playwright]              │
+│  GenerationService → [Gemini Flash Image API]              │
 │  StorageService → output/images/, output/videos/                   │
 │  BullMQ Workers ← Redis job queue                                  │
 └─────────────────────────────────────────────────────────────────────┘
