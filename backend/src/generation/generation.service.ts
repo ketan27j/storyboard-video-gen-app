@@ -4,7 +4,6 @@ import { Queue } from 'bull';
 import { ImagenService, ReferenceImageInput } from './imagen.service';
 import { VeoService } from './veo.service';
 import { GrokService } from './grok.service';
-import { ChatGptService } from './chatgpt.service';
 import { StorageService } from '../storage/storage.service';
 import { PipelineGateway } from '../pipeline/pipeline.gateway';
 import { DatabaseService } from '../database/database.service';
@@ -21,7 +20,6 @@ export class GenerationService {
     private readonly imagenService: ImagenService,
     private readonly veoService: VeoService,
     private readonly grokService: GrokService,
-    private readonly chatGptService: ChatGptService,
     private readonly storageService: StorageService,
     private readonly gateway: PipelineGateway,
     private readonly databaseService: DatabaseService,

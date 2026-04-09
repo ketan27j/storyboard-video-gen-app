@@ -6,7 +6,6 @@ import { StorageService } from '../storage/storage.service';
 import { PipelineGateway } from '../pipeline/pipeline.gateway';
 import { ImagenService } from '../generation/imagen.service';
 import { GrokService } from '../generation/grok.service';
-import { ChatGptService } from '../generation/chatgpt.service';
 
 @Processor('image-generation')
 export class ImageProcessor {
@@ -18,7 +17,6 @@ export class ImageProcessor {
     private readonly gateway: PipelineGateway,
     private readonly imagenService: ImagenService,
     private readonly grokService: GrokService,
-    private readonly chatGptService: ChatGptService,
   ) {}
 
   @Process('generate-image')
@@ -54,9 +52,6 @@ export class ImageProcessor {
         buffer = result.imageBuffer;
       } else if (imageProvider === 'leonardo') {
         buffer = await this.grokService.generateImage(prompt);
-      } else if (imageProvider === 'chatgpt') {
-        const result = await this.chatGptService.generateImage(prompt);
-        buffer = require('fs').readFileSync(result.imagePath);
       } else {
         buffer = await this.generatePlaceholderReferenceImage(prompt);
       }
@@ -104,9 +99,6 @@ export class ImageProcessor {
         }
       } else if (imageProvider === 'leonardo') {
         buffer = await this.grokService.generateImage(prompt);
-      } else if (imageProvider === 'chatgpt') {
-        const result = await this.chatGptService.generateImage(prompt);
-        buffer = require('fs').readFileSync(result.imagePath);
       } else {
         buffer = await this.generatePlaceholderReferenceImage(prompt);
       }
