@@ -1,10 +1,13 @@
 version: '3.9'
 
+networks:
+  internal:
+    driver: bridge
+    internal: false
+
 services:
   redis:
     image: redis:7-alpine
-    ports:
-      - '6379:6379'
     volumes:
       - redis_data:/data
     restart: unless-stopped
@@ -13,13 +16,17 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - internal
+    user: 999:999
+    read_only: true
+    tmpfs:
+      - /tmp
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - '3001:3001'
     environment:
       - NODE_ENV=production
       - REDIS_HOST=redis
@@ -27,23 +34,48 @@ services:
     env_file:
       - ./backend/.env
     volumes:
-      - ./output:/app/output
+      - output_data:/app/output
       - ./auth:/app/auth
-      - ./prompts:/app/prompts
+      - ./prompts:/app/prompts:ro
     depends_on:
       redis:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - '5173:80'
+      - '80:80'
     depends_on:
       - backend
     restart: unless-stopped
+    networks:
+      - internal
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   redis_data:
+    driver: local
+  output_data:
+    driver: local
