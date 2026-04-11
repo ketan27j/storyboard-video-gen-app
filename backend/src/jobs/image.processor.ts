@@ -5,7 +5,6 @@ import { GenerationService } from '../generation/generation.service';
 import { StorageService } from '../storage/storage.service';
 import { PipelineGateway } from '../pipeline/pipeline.gateway';
 import { ImagenService } from '../generation/imagen.service';
-import { GrokService } from '../generation/grok.service';
 
 @Processor('image-generation')
 export class ImageProcessor {
@@ -16,7 +15,6 @@ export class ImageProcessor {
     private readonly storageService: StorageService,
     private readonly gateway: PipelineGateway,
     private readonly imagenService: ImagenService,
-    private readonly grokService: GrokService,
   ) {}
 
   @Process('generate-image')
@@ -50,8 +48,6 @@ export class ImageProcessor {
       if (imageProvider === 'imagen' || imageProvider === 'imagen3') {
         const result = await this.imagenService.generateImage(prompt);
         buffer = result.imageBuffer;
-      } else if (imageProvider === 'leonardo') {
-        buffer = await this.grokService.generateImage(prompt);
       } else {
         buffer = await this.generatePlaceholderReferenceImage(prompt);
       }
@@ -97,8 +93,6 @@ export class ImageProcessor {
           const result = await this.imagenService.generateImage(prompt);
           buffer = result.imageBuffer;
         }
-      } else if (imageProvider === 'leonardo') {
-        buffer = await this.grokService.generateImage(prompt);
       } else {
         buffer = await this.generatePlaceholderReferenceImage(prompt);
       }

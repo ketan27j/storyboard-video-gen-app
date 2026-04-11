@@ -3,7 +3,6 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { ImagenService, ReferenceImageInput } from './imagen.service';
 import { VeoService } from './veo.service';
-import { GrokService } from './grok.service';
 import { StorageService } from '../storage/storage.service';
 import { PipelineGateway } from '../pipeline/pipeline.gateway';
 import { DatabaseService } from '../database/database.service';
@@ -19,7 +18,6 @@ export class GenerationService {
     @InjectQueue('video-generation') private videoQueue: Queue,
     private readonly imagenService: ImagenService,
     private readonly veoService: VeoService,
-    private readonly grokService: GrokService,
     private readonly storageService: StorageService,
     private readonly gateway: PipelineGateway,
     private readonly databaseService: DatabaseService,
@@ -171,8 +169,6 @@ export class GenerationService {
 
       if (this.videoProvider === 'veo') {
         buffer = await this.veoService.generateVideo(prompt, imagePath);
-      } else if (this.videoProvider === 'grok') {
-        buffer = await this.grokService.generateVideo(prompt, imagePath);
       } else {
         // Manual / mock mode
         buffer = Buffer.from('mock-video-data');

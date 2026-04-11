@@ -3,7 +3,6 @@ import { BullModule } from '@nestjs/bull';
 import { GenerationService } from './generation.service';
 import { ImagenService } from './imagen.service';
 import { VeoService } from './veo.service';
-import { GrokService } from './grok.service';
 import { StorageModule } from '../storage/storage.module';
 import { ImageProcessor } from '../jobs/image.processor';
 import { VideoProcessor } from '../jobs/video.processor';
@@ -24,7 +23,6 @@ import { DatabaseModule } from '../database/database.module';
     GenerationService,
     ImagenService,
     VeoService,
-    GrokService,
     ImageProcessor,
     VideoProcessor,
   ],
