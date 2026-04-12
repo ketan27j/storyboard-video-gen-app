@@ -4,6 +4,10 @@ A full-stack web application that transforms a simple movie idea into a complete
 
 ---
 
+## Demo
+[![Video Description](https://github.com/ketan27j/whisky-goggles/blob/main/docs/play.jpg)](https://youtu.be/Jid_8jYgz04)
+
+
 ## 📖 Table of Contents
 
 - [Overview](#overview)

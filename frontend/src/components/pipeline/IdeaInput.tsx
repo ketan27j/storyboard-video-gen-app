@@ -5,7 +5,7 @@ import { useStartPipeline } from '../../hooks/usePipeline';
 const EXAMPLES = [
   'Mother (Sajiri)(around 30s) explaining importance of Gudhi Padava festival in india to her 4 yr daughter (Chinu) in brief. What indian people do during that festival. eg: They mount Gudhi in their home decorated with sari, flowers, garlands, which is symbol of prosperity and new beginning. They prepare special food like Shrikhand puri, puran poli. They have shobha yatra with traditional attire of navvari and feta, dhoti.',
   'Mother (Sajiri)(around 30s) explaining importance of Ram Navami festival in india to her 4 yr daughter (Chinu) in brief. What indian people do during that festival. eg: Visit temples dedicated to Lord Rama, Do fasting or eat simple satvik food like fruits, sabudana dishes, or kheer and Temples decorate idols and sometimes re-enact scenes from the Ramayana',
-  'Koli lady (Sajiri) and other 4 fair ladies with different faces wearing traditional nauwari sadi having hair bun with veni in it & capturing fish (paplet) in konkan sea & then making paplet fry at home in indian village',
+  'Sajiri cooking recipe of puran poli for Gudhi Padava festival. She is showing the ingredients and how to prepare the filling of jaggery and chana dal, how to make the dough, stuff it, roll it out and cook it on a griddle until golden brown.',
 ];
 
 export function IdeaInput() {
@@ -38,13 +38,6 @@ export function IdeaInput() {
           backgroundSize: '128px',
         }}
       />
-
-      {/* Film strip top decoration */}
-      <div className="absolute top-0 left-0 right-0 h-12 flex items-center overflow-hidden opacity-20">
-        {Array.from({ length: 30 }).map((_, i) => (
-          <div key={i} className="flex-shrink-0 w-8 h-8 border border-stone-500 mx-1 rounded-sm" />
-        ))}
-      </div>
 
       <div className="w-full max-w-2xl">
         {/* Logo */}
@@ -127,12 +120,7 @@ export function IdeaInput() {
         </div>
       </div>
 
-      {/* Film strip bottom decoration */}
-      <div className="absolute bottom-0 left-0 right-0 h-12 flex items-center overflow-hidden opacity-20">
-        {Array.from({ length: 30 }).map((_, i) => (
-          <div key={i} className="flex-shrink-0 w-8 h-8 border border-stone-500 mx-1 rounded-sm" />
-        ))}
-      </div>
+
     </div>
   );
 }
